@@ -11,6 +11,14 @@
     <depend>boost</depend>
     <depend>eigen</depend>
 
+    <!-- PRL Things. -->
+    <depend>dartsim</depend>
+    <depend>aikido</depend>
+    <depend>libherb</depend>
+    <depend>herb_description</depend>
+    <depend>pr_assets</depend>
+    <depend>pr_tsr</depend>
+
     <!-- This is required by REP-136. -->
     <exec_depend>catkin</exec_depend>
     <buildtool_depend>cmake</buildtool_depend>

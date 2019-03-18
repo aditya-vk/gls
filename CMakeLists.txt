@@ -23,6 +23,32 @@ find_package(Boost REQUIRED COMPONENTS thread filesystem graph program_options s
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 
+
+find_package(DART REQUIRED
+  COMPONENTS utils utils-urdf optimizer-nlopt)
+find_package(aikido 0.0.2 REQUIRED
+  COMPONENTS
+    common
+    constraint
+    control
+    control_ros
+    distance
+    perception
+    planner
+    planner_kunzretimer
+    planner_ompl
+    planner_parabolic
+    planner_vectorfield
+    robot
+    rviz
+    statespace
+    io
+)
+find_package(libherb REQUIRED)
+find_package(pr_assets REQUIRED)
+find_package(pr_tsr REQUIRED)
+
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
@@ -35,6 +61,10 @@ include_directories(
   ${OMPL_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
+  ${DART_INCLUDE_DIRS}
+  ${libherb_INCLUDE_DIRS}
+  ${pr_assets_INCLUDE_DIRS}
+  ${pr_tsr_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -66,13 +96,22 @@ add_library(${PROJECT_NAME}
 #================================================================================
 
 # Correctness Test Script
-# add_executable(test2d_image examples/test2d_image.cpp)
-# target_link_libraries(test2d_image ${PROJECT_NAME} ${OpenCV_LIBS})
-# install(TARGETS test2d_image RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-# 
-# add_executable(test_cycle examples/test_cycle.cpp)
-# target_link_libraries(test_cycle ${PROJECT_NAME} ${OpenCV_LIBS})
-# install(TARGETS test_cycle RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+add_executable(test2d_image examples/test2d_image.cpp)
+target_link_libraries(test2d_image ${PROJECT_NAME} ${OpenCV_LIBS})
+install(TARGETS test2d_image RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+add_executable(test_cycle examples/test_cycle.cpp)
+target_link_libraries(test_cycle ${PROJECT_NAME} ${OpenCV_LIBS})
+install(TARGETS test_cycle RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+add_executable(exampleHERB examples/exampleHERB.cpp)
+target_link_libraries(exampleHERB
+  ${PROJECT_NAME}
+  ${DART_LIBRARIES}
+  ${aikido_LIBRARIES}
+  ${BOOST_LIBRARIES}
+  libherb)
+install(TARGETS exampleHERB RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #================================================================================
 # Installation
