@@ -227,16 +227,16 @@ ompl::base::PlannerStatus GLS::solve(
 
   // Return if source or target are in collision.
   if (evaluateVertex(mSourceVertex) == CollisionStatus::Collision)
+  {
+    OMPL_INFORM("Start State is invalid");
     return ompl::base::PlannerStatus::INVALID_START;
+  }
 
   if (evaluateVertex(mTargetVertex) == CollisionStatus::Collision)
+  {
+    OMPL_INFORM("Goal State is invalid");
     return ompl::base::PlannerStatus::INVALID_GOAL;
-
-  // Return if we do not have a single connected component.
-  std::vector<int> component (boost::num_vertices (mGraph));
-  mConnectedComponents = boost::connected_components (mGraph, &component[0]);
-  if (mConnectedComponents != 1)
-    return ompl::base::PlannerStatus::TIMEOUT;
+  }
 
   // Add the source vertex to the search tree with zero cost-to-come.
   mGraph[mSourceVertex].setVisitStatus(VisitStatus::Visited);

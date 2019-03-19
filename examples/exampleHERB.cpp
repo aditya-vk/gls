@@ -20,7 +20,11 @@
 #include <ompl/base/ScopedState.h>
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
+#include <ompl/base/spaces/RealVectorBounds.h>
 #include <ompl/geometric/PathGeometric.h>
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/planners/bitstar/BITstar.h>
+#include <ompl/geometric/planners/prm/LazyPRM.h>
 
 // PRL libraries
 #include <aikido/constraint/dart/TSR.hpp>
@@ -78,7 +82,6 @@ bool isPointValid(const aikido::statespace::dart::MetaSkeletonStateSpacePtr stat
                   const aikido::constraint::TestablePtr constraint,
                   const ompl::base::State* state)
 {
-  return true;
   DART_UNUSED(stateSpace);
   const auto* st = static_cast<const aikido::planner::ompl::GeometricStateSpace::StateType*>(state);
   const auto testState = st->mState;
@@ -137,7 +140,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::string graph_file(vm["planner"].as<std::string>());
+  std::string plannerType(vm["planner"].as<std::string>());
 
 // =======================
 // POSSIBLE CONFIGURATIONS
@@ -153,7 +156,7 @@ int main(int argc, char *argv[])
   rightReachPhone << 5.65, -0.78, 1.45, -0.70, -0.82, -0.28, -1.43;
 
   Eigen::VectorXd rightHoldPhone(7);
-  rightHoldPhone << 3.93, -0.80, -0.27, 2.36, 1.13, 0.92, 3.16;
+  rightHoldPhone << 3.93, -0.80, -0.27, 2.36, 1.13, 0.92, 0.0;
 
   Eigen::VectorXd leftMenacing(7);
   leftMenacing << 2.60, -1.90, 0.00, 2.20, 0.00, 0.00, 0.00;
@@ -171,10 +174,10 @@ int main(int argc, char *argv[])
   leftHandPhone << 0.64, -1.50, 0.26, 1.96, 1.16, 0.87, 1.43;
 
   Eigen::VectorXd rightHandPhone(7);
-  rightHandPhone << 5.02, -0.24, -0.12, 0.87, 1.21, 0.34, 3.47;
+  rightHandPhone << 5.02, -0.24, -0.12, 0.87, 1.21, 0.34, 0.0;
 
   Eigen::VectorXd rightFarLeftReach(7);
-  rightFarLeftReach << 5.30, 1.50, -0.12, 0.87, 1.21, 0.34, 3.47;
+  rightFarLeftReach << 5.30, 1.50, -0.12, 0.87, 1.21, 0.34, 0.0;
 
   Eigen::VectorXd rightTopShelf(7);
   rightTopShelf << 3.1, -1.0, 0.0, 1.1, -0.9, 0.0, -1.43;
@@ -269,7 +272,7 @@ int main(int argc, char *argv[])
   env->addSkeleton(table);
   env->addSkeleton(shelf);
   env->addSkeleton(pitcher);
-  env->addSkeleton(roof);
+  // env->addSkeleton(roof);
 
   // Set up collision constraints for planning.
   CollisionDetectorPtr collisionDetector
@@ -287,14 +290,17 @@ int main(int argc, char *argv[])
 
   std::shared_ptr<CollisionGroup> envGroup
       = collisionDetector->createCollisionGroup(table.get(),
-                                                shelf.get(),
-                                                pitcher.get(),
-                                                roof.get());
+                                                shelf.get()
+                                                // pitcher.get()
+                                                // roof.get()
+                                                );
 
   auto rightCollisionFreeConstraint = std::make_shared<CollisionFree>(
         rightArmSpace, robot.getRightArm()->getMetaSkeleton(), collisionDetector);
   rightCollisionFreeConstraint->addPairwiseCheck(rightArmGroup, envGroup);
   rightCollisionFreeConstraint->addPairwiseCheck(rightArmGroup, leftArmGroup);
+  auto fullCollisionConstraint = robot.getFullCollisionConstraint(rightArmSpace, 
+    robot.getRightArm()->getMetaSkeleton(), rightCollisionFreeConstraint);
 
   /// Planner Setup
   ROS_INFO("The environment has been setup. Press key to start planning");
@@ -303,9 +309,29 @@ int main(int argc, char *argv[])
   leftArm->setPositions(leftRelaxedHome);
   robot.getRightHand()->executePreshape("closed").wait();
 
+  // auto planner = OMPLConfigurationToConfigurationPlanner<LRAstar::LRAstar>(rightArmSpace, nullptr);
+
   // Define the state space: R^7
   auto space = std::make_shared<ompl::base::RealVectorStateSpace>(7);
-  space->as<ompl::base::RealVectorStateSpace>()->setBounds(-5.0, 3.5);
+  ompl::base::RealVectorBounds bounds(7);
+
+  bounds.setLow(0, 0.54);
+  bounds.setLow(1, -2.00);
+  bounds.setLow(2, -2.80);
+  bounds.setLow(3, -0.9);
+  bounds.setLow(4, -4.76);
+  bounds.setLow(5, -1.60);
+  bounds.setLow(6, -3.00);
+
+  bounds.setHigh(0, 5.75);
+  bounds.setHigh(1, 2.00);
+  bounds.setHigh(2, 2.80);
+  bounds.setHigh(3, 3.10);
+  bounds.setHigh(4, 1.24);
+  bounds.setHigh(5, 1.60);
+  bounds.setHigh(6, 3.00);
+
+  space->as<ompl::base::RealVectorStateSpace>()->setBounds(bounds);
   space->setLongestValidSegmentFraction(0.01 / space->getMaximumExtent());
   space->setup();
 
