@@ -252,8 +252,9 @@ int main(int argc, char *argv[])
   // Obtain required data if plan was successful
   if (status == ompl::base::PlannerStatus::EXACT_SOLUTION)
   {
-    pdef->print(std::cout);
-    pdef->getSolutionPath()->print(std::cout);
+    auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(
+      pdef->getSolutionPath());
+    path->printAsMatrix(std::cout);
   }
 
   waitForUser("Press enter to exit");
