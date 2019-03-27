@@ -20,6 +20,7 @@
 #include <ompl/base/ScopedState.h>
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
+#include <ompl/base/spaces/SE2StateSpace.h>
 #include <ompl/base/spaces/RealVectorBounds.h>
 #include <ompl/geometric/PathGeometric.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
@@ -72,12 +73,13 @@ bool isPointValid(
   const ompl::base::State* state
   )
 {
+  return true;
   // Obtain the values from state.
-  double * values = state->as<ompl::base::RealVectorStateSpace::StateType>()->values;
+  auto se2State = state->as<ompl::base::SE2StateSpace::StateType>();
 
   // Convert positions to Eigen. DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
   Eigen::VectorXd positions(6);
-  positions << values[0], 0.0, values[1], 0.0, values[2], 0.0;
+  positions << se2State->getX(), 0.0, se2State->getY(), 0.0, se2State->getYaw(), 0.0;
 
   // Set Positions for the robot.
   robot->setPositions(positions);
@@ -104,18 +106,6 @@ bool isPointValid(
         &collisionResult);
 
   return !collisionStatus;
-}
-
-ompl::base::ScopedState<ompl::base::RealVectorStateSpace>
-make_state(const ompl::base::StateSpacePtr space, Eigen::VectorXd vals)
-{
-   ompl::base::ScopedState<ompl::base::RealVectorStateSpace> state(space);
-   double * values = state->as<ompl::base::RealVectorStateSpace::StateType>()->values;
-   for (std::size_t i = 0; i < space->getDimension(); i++)
-   {
-     values[i] = vals[i];
-   }
-   return state;
 }
 
 const SkeletonPtr makeBodyFromURDF(
@@ -202,6 +192,69 @@ int main(int argc, char *argv[])
   env->addSkeleton(robot);
 
   waitForUser("The environment has been setup. Press key to start planning");
+
+  // Define the state space: SE(2)
+  auto space = std::make_shared<ompl::base::SE2StateSpace>();
+  ompl::base::RealVectorBounds bounds(2);
+
+  bounds.setLow(0, -55.0);
+  bounds.setLow(1, -55.0);
+
+  bounds.setHigh(0, 55.0);
+  bounds.setHigh(1, 55.0);
+
+  space->setBounds(bounds);
+  space->setup();
+
+  // Space Information
+  ompl::base::SpaceInformationPtr si(new ompl::base::SpaceInformation(space));
+  std::function<bool(const ompl::base::State*)> isStateValid = std::bind(
+        isPointValid, world, robot, std::placeholders::_1);
+  si->setStateValidityChecker(isStateValid);
+  si->setup();
+
+  // Problem Definition
+  ompl::base::ProblemDefinitionPtr pdef(new ompl::base::ProblemDefinition(si));
+
+  ompl::base::ScopedState<ompl::base::SE2StateSpace> start(si);
+  start->setX(7.02);
+  start->setY(-12.0);
+  start->setYaw(0.0);
+
+  ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(start);
+  goal->setX(-36.98);
+  goal->setY(-10);
+  goal->setYaw(2.25);
+  
+  pdef->addStartState(start);
+  pdef->setGoalState(goal);
+
+  // Setup planner
+  gls::GLS planner(si);
+  planner.setConnectionRadius(1.5);
+  planner.setCollisionCheckResolution(0.1);
+  planner.setRoadmap("/home/adityavk/workspaces/lab-ws/src/planning_dataset/se2.graphml");
+
+  auto event = std::make_shared<gls::event::ShortestPathEvent>();
+  auto selector = std::make_shared<gls::selector::ForwardSelector>();
+  planner.setEvent(event);
+  planner.setSelector(selector);
+
+  planner.setup();
+  planner.setProblemDefinition(pdef);
+
+  // Solve the motion planning problem
+  ompl::base::PlannerStatus status;
+  waitForUser("Solve the problem.");
+  status = planner.solve(ompl::base::plannerNonTerminatingCondition());
+  waitForUser("Solved the problem.");
+
+  // Obtain required data if plan was successful
+  if (status == ompl::base::PlannerStatus::EXACT_SOLUTION)
+  {
+    pdef->print(std::cout);
+    pdef->getSolutionPath()->print(std::cout);
+  }
 
   waitForUser("Press enter to exit");
   return 0;
