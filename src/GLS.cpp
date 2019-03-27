@@ -227,13 +227,13 @@ ompl::base::PlannerStatus GLS::solve(
   // Return if source or target are in collision.
   if (evaluateVertex(mSourceVertex) == CollisionStatus::Collision)
   {
-    OMPL_INFORM("Start State is invalid");
+    OMPL_INFORM("Start State is invalid.");
     return ompl::base::PlannerStatus::INVALID_START;
   }
 
   if (evaluateVertex(mTargetVertex) == CollisionStatus::Collision)
   {
-    OMPL_INFORM("Goal State is invalid");
+    OMPL_INFORM("Goal State is invalid.");
     return ompl::base::PlannerStatus::INVALID_GOAL;
   }
 
