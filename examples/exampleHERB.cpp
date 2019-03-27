@@ -96,7 +96,7 @@ make_state(const ompl::base::StateSpacePtr space, Eigen::VectorXd vals)
 {
    ompl::base::ScopedState<ompl::base::RealVectorStateSpace> state(space);
    double * values = state->as<ompl::base::RealVectorStateSpace::StateType>()->values;
-   for (int i = 0; i < space->getDimension(); i++)
+   for (std::size_t i = 0; i < space->getDimension(); i++)
    {
      values[i] = vals[i];
    }
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
     std::cout << pathSize << std::endl;
 
     std::vector<ompl::base::State*> states = path->getStates();
-    for (int i = 0; i < pathSize; ++i)
+    for (std::size_t i = 0; i < pathSize; ++i)
     {
       Eigen::VectorXd currentConfig(7);
       double *vals = states[i]->as<ompl::base::RealVectorStateSpace::StateType>()->values;

@@ -117,6 +117,14 @@ target_link_libraries(exampleHERB
   libherb)
 install(TARGETS exampleHERB RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
+add_executable(test_SE2_OMPLApp examples/test_SE2_OMPLApp.cpp)
+target_link_libraries(test_SE2_OMPLApp
+  ${PROJECT_NAME}
+  ${DART_LIBRARIES}
+  ${aikido_LIBRARIES}
+  ${BOOST_LIBRARIES})
+install(TARGETS test_SE2_OMPLApp RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 #================================================================================
 # Installation
 #================================================================================
