@@ -56,11 +56,7 @@ using aikido::constraint::dart::CollisionFree;
 using aikido::statespace::dart::MetaSkeletonStateSpace;
 
 static const std::string topicName("dart_markers");
-static const std::string markerTopicName("/apriltags/marker_array");
 static const std::string configDataURI("package://pr_assets/data/objects/tag_data.json");
-static const std::string herbFrameName("herb_frame");
-static const std::string tableName("table127");
-static const std::string shelfName("shelf");
 static const std::string baseFrameName("map");
 
 void waitForUser(std::string message)
@@ -73,16 +69,15 @@ void waitForUser(std::string message)
 bool isPointValid(
   SkeletonPtr world,
   SkeletonPtr robot,
-  Eigen::VectorXd& positions
-  // const ompl::base::State* state
+  const ompl::base::State* state
   )
 {
   // Obtain the values from state.
-  // double * values = state->as<ompl::base::RealVectorStateSpace::StateType>()->values;
+  double * values = state->as<ompl::base::RealVectorStateSpace::StateType>()->values;
 
-  // Convert positions to Eigen.
-  // Eigen::VectorXd positions(6);
-  // positions << values[0], 0.0, values[1], 0.0, values[2], 0.0;
+  // Convert positions to Eigen. DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
+  Eigen::VectorXd positions(6);
+  positions << values[0], 0.0, values[1], 0.0, values[2], 0.0;
 
   // Set Positions for the robot.
   robot->setPositions(positions);
@@ -146,7 +141,8 @@ int main(int argc, char *argv[])
   po::options_description desc("HERB Planner Options");
   desc.add_options()
       ("help,h", "produce help message")
-      ("planner,p", po::value<std::string>()->required(), "Path to Graph")
+      ("world,w", po::value<std::string>()->required(), "world to load")
+      ("robot,r", po::value<std::string>()->required(), "robot to load")
   ;
 
   // Read arguments
@@ -160,7 +156,8 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  std::string plannerType(vm["planner"].as<std::string>());
+  std::string worldName(vm["world"].as<std::string>());
+  std::string robotName(vm["robot"].as<std::string>());
 
   /// HERB ENVIRONMENT
   ROS_INFO("Starting ROS node.");
@@ -168,7 +165,7 @@ int main(int argc, char *argv[])
   ros::NodeHandle nh("~");
 
   // Create AIKIDO World
-  aikido::planner::WorldPtr env(new aikido::planner::World("exec"));
+  aikido::planner::WorldPtr env(new aikido::planner::World("ompl_env"));
 
   // Visualization topics
   static const std::string execTopicName = topicName + "/exec";
@@ -180,8 +177,8 @@ int main(int argc, char *argv[])
 
   // Resolves package:// URIs by emulating the behavior of 'catkin_find'.
   const auto resourceRetriever = std::make_shared<aikido::io::CatkinResourceRetriever>();
-  const std::string worldURDFUri("package://pr_assets/data/ompl/2D/BugTrap_planar_env.urdf");
-  const std::string robotURDFUri("package://pr_assets/data/ompl/2D/car1_planar_robot.urdf");
+  const std::string worldURDFUri = "package://pr_assets/data/ompl/2D/" + worldName + ".urdf";
+  const std::string robotURDFUri = "package://pr_assets/data/ompl/2D/" + robotName + ".urdf";
 
   // Initial perception
   SkeletonPtr world;
@@ -205,16 +202,6 @@ int main(int argc, char *argv[])
   env->addSkeleton(robot);
 
   waitForUser("The environment has been setup. Press key to start planning");
-
-  // DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
-  Eigen::VectorXd pos(6);
-  pos << 0, 0, 0.0, -55.0, 0.0, -55.0;
-  waitForUser("Check for collision 1");
-  std::cout << "corner: " << isPointValid(world, robot, pos);
-
-  pos << 0, 0, 0.0, 0.0, 0.0, 0.0;
-  waitForUser("Check for collision 2");
-  std::cout << "center: " << isPointValid(world, robot, pos);
 
   waitForUser("Press enter to exit");
   return 0;
