@@ -73,13 +73,12 @@ bool isPointValid(
   const ompl::base::State* state
   )
 {
-  return true;
   // Obtain the values from state.
   auto se2State = state->as<ompl::base::SE2StateSpace::StateType>();
 
   // Convert positions to Eigen. DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
   Eigen::VectorXd positions(6);
-  positions << se2State->getX(), 0.0, se2State->getY(), 0.0, se2State->getYaw(), 0.0;
+  positions << 0.0, se2State->getYaw(), 0.0, se2State->getX(), 0.0, se2State->getY();
 
   // Set Positions for the robot.
   robot->setPositions(positions);
@@ -217,23 +216,23 @@ int main(int argc, char *argv[])
   ompl::base::ProblemDefinitionPtr pdef(new ompl::base::ProblemDefinition(si));
 
   ompl::base::ScopedState<ompl::base::SE2StateSpace> start(si);
-  start->setX(7.02);
-  start->setY(-12.0);
+  start->setX(0.0);
+  start->setY(-24.0);
   start->setYaw(0.0);
 
   ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(start);
-  goal->setX(-36.98);
-  goal->setY(-10);
-  goal->setYaw(2.25);
+  goal->setX(-0.0);
+  goal->setY(24.0);
+  goal->setYaw(0.0);
   
   pdef->addStartState(start);
   pdef->setGoalState(goal);
 
   // Setup planner
   gls::GLS planner(si);
-  planner.setConnectionRadius(1.5);
+  planner.setConnectionRadius(10);
   planner.setCollisionCheckResolution(0.1);
-  planner.setRoadmap("/home/adityavk/workspaces/lab-ws/src/planning_dataset/se2.graphml");
+  planner.setRoadmap("/home/adityavk/workspaces/lab-ws/src/planning_dataset/scripts/generators/graph_SE2_1000.graphml");
 
   auto event = std::make_shared<gls::event::ShortestPathEvent>();
   auto selector = std::make_shared<gls::selector::ForwardSelector>();
