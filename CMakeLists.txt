@@ -125,6 +125,14 @@ target_link_libraries(test_SE2_OMPLApp
   ${BOOST_LIBRARIES})
 install(TARGETS test_SE2_OMPLApp RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
+add_executable(createSE2Graph scripts/createSE2Graph.cpp)
+target_link_libraries(createSE2Graph
+  ${PROJECT_NAME}
+  ${DART_LIBRARIES}
+  ${aikido_LIBRARIES}
+  ${BOOST_LIBRARIES})
+install(TARGETS createSE2Graph RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 #================================================================================
 # Installation
 #================================================================================
