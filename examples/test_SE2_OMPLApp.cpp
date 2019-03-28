@@ -166,8 +166,8 @@ int main(int argc, char *argv[])
 
   // Resolves package:// URIs by emulating the behavior of 'catkin_find'.
   const auto resourceRetriever = std::make_shared<aikido::io::CatkinResourceRetriever>();
-  const std::string worldURDFUri = "package://pr_assets/data/ompl/2D/" + worldName + ".urdf";
-  const std::string robotURDFUri = "package://pr_assets/data/ompl/2D/" + robotName + ".urdf";
+  const std::string worldURDFUri = "package://pr_assets/data/ompl/" + worldName + ".urdf";
+  const std::string robotURDFUri = "package://pr_assets/data/ompl/" + robotName + ".urdf";
 
   // Initial perception
   SkeletonPtr world;
