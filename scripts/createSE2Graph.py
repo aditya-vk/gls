@@ -14,7 +14,7 @@ if __name__ == '__main__':
     directory = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/"
     default_vertex_location = directory + 'vertices.txt'
     default_edges_location = directory + 'edges.txt'
-    edgeStates_location = directory + 'edgesViz.txt'
+    edgeStates_location = directory + 'edges_viz.txt'
     graph_save_location = directory + 'graph_se2_apartment.graphml'
 
     # Collect vertices.
@@ -24,8 +24,9 @@ if __name__ == '__main__':
     # Add vertices
     print("Adding vertices")
     for i in range(n):
+        print(i)
         state = ''
-        for j in range(6):
+        for j in range(2):
             state += str(halton[i][j]) + ' '
         state += str(halton[i][-1])
 
@@ -33,7 +34,6 @@ if __name__ == '__main__':
 
     # Collect edges.
     haltonEdges = numpy.loadtxt(default_edges_location)
-    edgeStates = numpy.loadtxt(edgeStates_location)
 
     # Adding Edges
     print("Adding edges")
@@ -45,4 +45,3 @@ if __name__ == '__main__':
     print('Connected: ', nx.is_connected(G))
     print('Number of Connected Components: ', nx.number_connected_components(G))
     nx.write_graphml(G, graph_save_location)
-    

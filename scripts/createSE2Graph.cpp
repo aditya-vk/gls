@@ -1,6 +1,7 @@
 // Standard C++ libraries
 #include <iostream>
 #include <cmath>
+#include <chrono>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -53,6 +54,11 @@ void waitForUser(std::string message)
 bool isPointValid(
   SkeletonPtr world,
   SkeletonPtr robot,
+  std::shared_ptr<CollisionGroup> worldGroup,
+  std::shared_ptr<CollisionGroup> robotGroup,
+  CollisionDetectorPtr collisionDetector,
+  ::dart::collision::CollisionResult collisionResult,
+  ::dart::collision::CollisionOption collisionOptions,
   const Eigen::VectorXd haltonPoint
   )
 {
@@ -62,23 +68,6 @@ bool isPointValid(
 
   // Set Positions for the robot.
   robot->setPositions(positions);
-
-  // Set up collision constraints for planning.
-  // TODO (avk): check if these are required.
-  CollisionDetectorPtr collisionDetector
-      = dart::collision::FCLCollisionDetector::create();
-  ::dart::collision::CollisionOption collisionOptions
-      = ::dart::collision::CollisionOption(
-          false,
-          1,
-          std::make_shared<::dart::collision::BodyNodeCollisionFilter>());
-  ::dart::collision::CollisionResult collisionResult;
-
-  std::shared_ptr<CollisionGroup> worldGroup
-      = collisionDetector->createCollisionGroup(world.get());
-
-  std::shared_ptr<CollisionGroup> robotGroup
-    = collisionDetector->createCollisionGroup(robot.get());
 
   // Check collisions and return the result.
   bool collisionStatus = collisionDetector->collide(worldGroup.get(), robotGroup.get(), collisionOptions,
@@ -169,8 +158,26 @@ Eigen::VectorXd haltonSequence(
 
 // =====================================================================================
 void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numSamples, 
-                Eigen::VectorXd lowerLimits, Eigen::VectorXd upperLimits, double threshold)
+                Eigen::VectorXd lowerLimits, Eigen::VectorXd upperLimits, double threshold, bool knn)
 {
+
+  CollisionDetectorPtr collisionDetector
+      = dart::collision::FCLCollisionDetector::create();
+
+  ::dart::collision::CollisionOption collisionOptions
+      = ::dart::collision::CollisionOption(
+          false,
+          1,
+          std::make_shared<::dart::collision::BodyNodeCollisionFilter>());
+
+  ::dart::collision::CollisionResult collisionResult;
+
+  std::shared_ptr<CollisionGroup> worldGroup
+      = collisionDetector->createCollisionGroup(world.get());
+
+  std::shared_ptr<CollisionGroup> robotGroup
+    = collisionDetector->createCollisionGroup(robot.get());
+
 
   // Holds the vertices. Index is the line number. Content is the configuration.
   std::string vertexFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/vertices.txt";
@@ -188,7 +195,7 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
   std::srand((unsigned int) time(0));
 
   // Generate a uniform offset
-  Eigen::VectorXd offset = Eigen::VectorXd::Random(3);
+  Eigen::VectorXd offset = Eigen::VectorXd::Random(3)*0;
 
   std::vector<Eigen::VectorXd> configurations;
   while (true)
@@ -200,11 +207,12 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
 
     index = index + 1;
 
-    if(!isPointValid(world, robot, config))
+    if(!isPointValid(world, robot, worldGroup, robotGroup, collisionDetector, collisionResult, collisionOptions, config))
       continue;
     else
       configurations.emplace_back(config);
 
+    numVertices = numVertices + 1;
     if (numVertices == numSamples)
       break;
   }
@@ -231,37 +239,94 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
 
   std::size_t connectedEdges = 0;
 
-  for (std::size_t i = 0; i < configurations.size()-1; ++i)
+  std::map<double, std::size_t> neighbors;
+  if (knn)
   {
-    if (i % 100 == 0)
-      std::cout << "Currently on " << i << std::endl;
-    for (std::size_t j = i+1; j < configurations.size(); ++j)
+    for (std::size_t i = 0; i < configurations.size()-1; ++i)
     {
-      // Check if vertices are closeby.
-      auto distance = (configurations[i] - configurations[j]).norm();
-
-      if (distance > threshold)
-        continue;
-
-      connectedEdges++;
-
-      edgesLogFile << i << " " << j << " " << distance << std::endl;
-
-      for (int index = 0; index < 2; ++index)
+      if (i % 100 == 0)
+        std::cout << "Currently on " << i << std::endl;
+      for (std::size_t j = i+1; j < configurations.size(); ++j)
       {
-        edgesVizLogFile << configurations[i](index) << " ";
+        // Check if vertices are closeby.
+        Eigen::VectorXd tangent = configurations[i] - configurations[j];
+        double linearDistance;
+        double angularDistance;
+
+        // Difference between R^2 positions
+        linearDistance = (tangent.head<2>()).norm();
+
+        // Difference between angles
+        angularDistance = tangent[2];
+        double distance = linearDistance + 10.0*angularDistance;
+
+        neighbors.insert(std::pair<double, std::size_t>(distance, j));
       }
 
-      for (int index = 0; index < 2; ++index)
-      {
-        edgesVizLogFile << configurations[j](index) << " ";
-      }
-      edgesVizLogFile << std::endl;
+      // Now that all the edges have been collected to a single vertex,
+      // choose the top 8 edges.
 
+      int currentEdges = 0;
+      for (auto it = neighbors.begin(); it != neighbors.end(); ++it)
+      {
+        edgesLogFile << i << " " << it->second << " " << it->first << std::endl;
+
+        for (int index = 0; index < 3; ++index)
+        {
+          edgesVizLogFile << configurations[i](index) << " ";
+        }
+
+        for (int index = 0; index < 3; ++index)
+        {
+          edgesVizLogFile << configurations[it->second](index) << " ";
+        }
+        edgesVizLogFile << std::endl;
+
+        currentEdges++;
+        if (currentEdges == 8)
+          break;
+      }
+      connectedEdges = connectedEdges + currentEdges;
+      neighbors.clear();
     }
+    edgesLogFile.close();
+    std::cout << "Total Vertices " << configurations.size() << " Edges " << connectedEdges << std::endl;
   }
-  edgesLogFile.close();
-  std::cout << "Total Vertices " << configurations.size() << " Edge " << connectedEdges << std::endl;
+
+  else
+  {
+    for (std::size_t i = 0; i < configurations.size()-1; ++i)
+    {
+      if (i % 100 == 0)
+        std::cout << "Currently on " << i << std::endl;
+      for (std::size_t j = i+1; j < configurations.size(); ++j)
+      {
+        // Check if vertices are closeby.
+        double distance = (configurations[i] - configurations[j]).norm();
+
+        if (distance > threshold)
+          continue;
+
+        connectedEdges++;
+
+        edgesLogFile << i << " " << j << " " << distance << std::endl;
+
+        for (int index = 0; index < 3; ++index)
+        {
+          edgesVizLogFile << configurations[i](index) << " ";
+        }
+
+        for (int index = 0; index < 3; ++index)
+        {
+          edgesVizLogFile << configurations[j](index) << " ";
+        }
+        edgesVizLogFile << std::endl;
+
+      }
+    }
+    edgesLogFile.close();
+    std::cout << "Total Vertices " << configurations.size() << " Edges " << connectedEdges << std::endl;
+  }
 }
 
 // =====================================================================================
@@ -279,7 +344,9 @@ int main(int argc, char *argv[])
 
   // Read arguments
   po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::store(po::command_line_parser(argc, argv).options(desc).style(
+  po::command_line_style::unix_style ^ po::command_line_style::allow_short
+  ).run(), vm);
   po::notify(vm);
 
   if (vm.count("help"))
@@ -337,19 +404,20 @@ int main(int argc, char *argv[])
   env->addSkeleton(robot);
 
   // Set the right limits.
-  Eigen::VectorXd lowerLimits;
-  Eigen::VectorXd upperLimits;
-  lowerLimits << lLimits[0], lLimits[1], -3.14;
-  upperLimits << uLimits[0], uLimits[1], 3.14;
+  Eigen::VectorXd lowerLimits(3);
+  Eigen::VectorXd upperLimits(3);
+  lowerLimits << -73, -179, -3.14;
+  upperLimits << 300, 168, 3.14;
 
-  Eigen::VectorXd difference(2);
+  Eigen::VectorXd difference(3);
   difference = upperLimits - lowerLimits;
-  double threshold = 5*std::pow(numSamples, -1.0/3)*std::max(difference(0), difference(1));
+  double threshold = std::pow(numSamples, -1.0/3)*std::max(difference(0), difference(1));
+  std::cout << "Threshold Used: " << threshold << std::endl;
 
   waitForUser("The environment has been setup. Press key to start generating the graph");
 
   // Generate the Halton Points.
-  generateHaltonPoints(world, robot, numSamples, lowerLimits, upperLimits, threshold);
+  generateHaltonPoints(world, robot, numSamples, lowerLimits, upperLimits, threshold, true);
 
   waitForUser("Press enter to exit");
   return 0;

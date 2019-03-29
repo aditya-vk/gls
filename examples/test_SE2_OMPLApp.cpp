@@ -70,6 +70,11 @@ void waitForUser(std::string message)
 bool isPointValid(
   SkeletonPtr world,
   SkeletonPtr robot,
+  std::shared_ptr<CollisionGroup> worldGroup,
+  std::shared_ptr<CollisionGroup> robotGroup,
+  CollisionDetectorPtr collisionDetector,
+  ::dart::collision::CollisionResult collisionResult,
+  ::dart::collision::CollisionOption collisionOptions,
   const ompl::base::State* state
   )
 {
@@ -81,24 +86,41 @@ bool isPointValid(
   positions << 0.0, se2State->getYaw(), 0.0, se2State->getX(), 0.0, se2State->getY();
 
   // Set Positions for the robot.
+  // std::chrono::time_point<std::chrono::system_clock> setStart{std::chrono::system_clock::now()};
   robot->setPositions(positions);
+  // std::chrono::time_point<std::chrono::system_clock> setEnd{std::chrono::system_clock::now()};
+  // std::chrono::duration<double> settingTime{setStart - setEnd};
+  // std::cout << "Setting Time: " << settingTime.count() << std::endl;
 
-  // Set up collision constraints for planning.
-  // TODO (avk): check if these are required.
-  CollisionDetectorPtr collisionDetector
-      = dart::collision::FCLCollisionDetector::create();
-  ::dart::collision::CollisionOption collisionOptions
-      = ::dart::collision::CollisionOption(
-          false,
-          1,
-          std::make_shared<::dart::collision::BodyNodeCollisionFilter>());
-  ::dart::collision::CollisionResult collisionResult;
+  // Check collisions and return the result.
+  // std::chrono::time_point<std::chrono::system_clock> collideStart{std::chrono::system_clock::now()};
+  bool collisionStatus = collisionDetector->collide(worldGroup.get(), robotGroup.get(), collisionOptions,
+        &collisionResult);
+  // std::chrono::time_point<std::chrono::system_clock> collideEnd{std::chrono::system_clock::now()};
+  // std::chrono::duration<double> collisionTime{collideStart - collideEnd};
+  // std::cout << "Collide Time: " << collisionTime.count() << std::endl;
 
-  std::shared_ptr<CollisionGroup> worldGroup
-      = collisionDetector->createCollisionGroup(world.get());
+  return !collisionStatus;
+}
 
-  std::shared_ptr<CollisionGroup> robotGroup
-    = collisionDetector->createCollisionGroup(robot.get());
+bool isEigenPointValid(
+  SkeletonPtr world,
+  SkeletonPtr robot,
+  std::shared_ptr<CollisionGroup> worldGroup,
+  std::shared_ptr<CollisionGroup> robotGroup,
+  CollisionDetectorPtr collisionDetector,
+  ::dart::collision::CollisionResult collisionResult,
+  ::dart::collision::CollisionOption collisionOptions,
+  Eigen::VectorXd& pos
+  )
+{
+  waitForUser("Press Enter to Check Point");
+  // Convert positions to Eigen. DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
+  Eigen::VectorXd positions(6);
+  positions << 0.0, pos(2), 0.0, pos(0), 0.0, pos(1);
+
+  // Set Positions for the robot.
+  robot->setPositions(positions);
 
   // Check collisions and return the result.
   bool collisionStatus = collisionDetector->collide(worldGroup.get(), robotGroup.get(), collisionOptions,
@@ -132,6 +154,7 @@ int main(int argc, char *argv[])
       ("help,h", "produce help message")
       ("world,w", po::value<std::string>()->required(), "world to load")
       ("robot,r", po::value<std::string>()->required(), "robot to load")
+      ("graph,g", po::value<std::string>()->required(), "graph to load")
   ;
 
   // Read arguments
@@ -147,6 +170,7 @@ int main(int argc, char *argv[])
 
   std::string worldName(vm["world"].as<std::string>());
   std::string robotName(vm["robot"].as<std::string>());
+  std::string graphName(vm["graph"].as<std::string>());
 
   /// HERB ENVIRONMENT
   ROS_INFO("Starting ROS node.");
@@ -190,17 +214,32 @@ int main(int argc, char *argv[])
   env->addSkeleton(world);
   env->addSkeleton(robot);
 
+  // Set the collision model.
+  CollisionDetectorPtr collisionDetector
+      = dart::collision::FCLCollisionDetector::create();
+  ::dart::collision::CollisionOption collisionOptions
+      = ::dart::collision::CollisionOption(
+          false,
+          1,
+          std::make_shared<::dart::collision::BodyNodeCollisionFilter>());
+  ::dart::collision::CollisionResult collisionResult;
+
+  std::shared_ptr<CollisionGroup> worldGroup
+      = collisionDetector->createCollisionGroup(world.get());
+  std::shared_ptr<CollisionGroup> robotGroup
+    = collisionDetector->createCollisionGroup(robot.get());
+
   waitForUser("The environment has been setup. Press key to start planning");
 
   // Define the state space: SE(2)
   auto space = std::make_shared<ompl::base::SE2StateSpace>();
   ompl::base::RealVectorBounds bounds(2);
 
-  bounds.setLow(0, -55.0);
-  bounds.setLow(1, -55.0);
+  bounds.setLow(0, -73.0);
+  bounds.setLow(1, -179.0);
 
-  bounds.setHigh(0, 55.0);
-  bounds.setHigh(1, 55.0);
+  bounds.setHigh(0, 300.0);
+  bounds.setHigh(1, 168.0);
 
   space->setBounds(bounds);
   space->setup();
@@ -208,7 +247,7 @@ int main(int argc, char *argv[])
   // Space Information
   ompl::base::SpaceInformationPtr si(new ompl::base::SpaceInformation(space));
   std::function<bool(const ompl::base::State*)> isStateValid = std::bind(
-        isPointValid, world, robot, std::placeholders::_1);
+        isPointValid, world, robot, worldGroup, robotGroup, collisionDetector, collisionResult, collisionOptions, std::placeholders::_1);
   si->setStateValidityChecker(isStateValid);
   si->setup();
 
@@ -216,23 +255,23 @@ int main(int argc, char *argv[])
   ompl::base::ProblemDefinitionPtr pdef(new ompl::base::ProblemDefinition(si));
 
   ompl::base::ScopedState<ompl::base::SE2StateSpace> start(si);
-  start->setX(0.0);
-  start->setY(-24.0);
+  start->setX(-31.19);
+  start->setY(-99.85);
   start->setYaw(0.0);
 
   ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(start);
-  goal->setX(-0.0);
-  goal->setY(24.0);
+  goal->setX(250);
+  goal->setY(-47.85);
   goal->setYaw(0.0);
-  
+
   pdef->addStartState(start);
   pdef->setGoalState(goal);
 
   // Setup planner
   gls::GLS planner(si);
-  planner.setConnectionRadius(10);
+  planner.setConnectionRadius(20);
   planner.setCollisionCheckResolution(0.1);
-  planner.setRoadmap("/home/adityavk/workspaces/lab-ws/src/planning_dataset/scripts/generators/graph_SE2_1000.graphml");
+  planner.setRoadmap(graphName);
 
   auto event = std::make_shared<gls::event::ShortestPathEvent>();
   auto selector = std::make_shared<gls::selector::ForwardSelector>();
