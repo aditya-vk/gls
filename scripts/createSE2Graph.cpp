@@ -257,7 +257,7 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
         linearDistance = (tangent.head<2>()).norm();
 
         // Difference between angles
-        angularDistance = tangent[2];
+        angularDistance = std::abs(tangent[2]);
         double distance = linearDistance + 10.0*angularDistance;
 
         neighbors.insert(std::pair<double, std::size_t>(distance, j));
