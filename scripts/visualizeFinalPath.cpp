@@ -67,41 +67,44 @@ void waitForUser(std::string message)
   std::cin.get();
 }
 
-bool isPointValid(
-  SkeletonPtr world,
-  SkeletonPtr robot,
-  std::shared_ptr<CollisionGroup> worldGroup,
-  std::shared_ptr<CollisionGroup> robotGroup,
-  CollisionDetectorPtr collisionDetector,
-  ::dart::collision::CollisionResult collisionResult,
-  ::dart::collision::CollisionOption collisionOptions,
-  const ompl::base::State* state
-  )
+/// Reads states from file
+///
+/// \param[in] path Path to the source file.
+/// \return vector of states
+std::vector<Eigen::VectorXd> readStatesFromFile(std::string path)
 {
-  // return true;
-  // Obtain the values from state.
-  auto se2State = state->as<ompl::base::SE2StateSpace::StateType>();
+  std::ifstream inputFile(path);
 
-  // Convert positions to Eigen. DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
-  Eigen::VectorXd positions(6);
-  positions << 0.0, se2State->getYaw(), 0.0, se2State->getX(), 0.0, se2State->getY();
+  std::vector<Eigen::VectorXd> configurations;
+  if (inputFile)
+  {
+    while (true)
+    {
+      std::string line;
+      double value;
 
-  // Set Positions for the robot.
-  // std::chrono::time_point<std::chrono::system_clock> setStart{std::chrono::system_clock::now()};
-  robot->setPositions(positions);
-  // std::chrono::time_point<std::chrono::system_clock> setEnd{std::chrono::system_clock::now()};
-  // std::chrono::duration<double> settingTime{setStart - setEnd};
-  // std::cout << "Setting Time: " << settingTime.count() << std::endl;
+      std::getline(inputFile, line);
 
-  // Check collisions and return the result.
-  // std::chrono::time_point<std::chrono::system_clock> collideStart{std::chrono::system_clock::now()};
-  bool collisionStatus = collisionDetector->collide(worldGroup.get(), robotGroup.get(), collisionOptions,
-        &collisionResult);
-  // std::chrono::time_point<std::chrono::system_clock> collideEnd{std::chrono::system_clock::now()};
-  // std::chrono::duration<double> collisionTime{collideStart - collideEnd};
-  // std::cout << "Collide Time: " << collisionTime.count() << std::endl;
+      if(line[0] == '#')
+        continue;
 
-  return !collisionStatus;
+      std::stringstream ss(
+            line, std::ios_base::out|std::ios_base::in|std::ios_base::binary);
+
+      if (!inputFile)
+        break;
+      Eigen::VectorXd row(3);
+      int index = 0;
+      while (ss >> value)
+      {
+        row(index) = value;
+        index++;
+      }
+      configurations.emplace_back(row);
+    }
+  }
+
+  return configurations;
 }
 
 bool isEigenPointValid(
@@ -115,7 +118,6 @@ bool isEigenPointValid(
   Eigen::VectorXd& pos
   )
 {
-  waitForUser("Press Enter to Check Point");
   // Convert positions to Eigen. DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
   Eigen::VectorXd positions(6);
   positions << 0.0, pos(2), 0.0, pos(0), 0.0, pos(1);
@@ -232,68 +234,12 @@ int main(int argc, char *argv[])
 
   waitForUser("The environment has been setup. Press key to start planning");
 
-  // Define the state space: SE(2)
-  auto space = std::make_shared<ompl::base::SE2StateSpace>();
-  ompl::base::RealVectorBounds bounds(2);
+  auto stateList = readStatesFromFile("/home/adityavk/programs/omplapp-1.4.2-Source/resources/3D/Apartment_gls.path");
 
-  bounds.setLow(0, -73.0);
-  bounds.setLow(1, -179.0);
-
-  bounds.setHigh(0, 300.0);
-  bounds.setHigh(1, 168.0);
-
-  space->setBounds(bounds);
-  space->setup();
-
-  // Space Information
-  ompl::base::SpaceInformationPtr si(new ompl::base::SpaceInformation(space));
-  std::function<bool(const ompl::base::State*)> isStateValid = std::bind(
-        isPointValid, world, robot, worldGroup, robotGroup, collisionDetector, collisionResult, collisionOptions, std::placeholders::_1);
-  si->setStateValidityChecker(isStateValid);
-  si->setup();
-
-  // Problem Definition
-  ompl::base::ProblemDefinitionPtr pdef(new ompl::base::ProblemDefinition(si));
-
-  ompl::base::ScopedState<ompl::base::SE2StateSpace> start(si);
-  start->setX(-31.19);
-  start->setY(-99.85);
-  start->setYaw(0.0);
-
-  ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(start);
-  goal->setX(250);
-  goal->setY(-47.85);
-  goal->setYaw(0.0);
-
-  pdef->addStartState(start);
-  pdef->setGoalState(goal);
-
-  // Setup planner
-  gls::GLS planner(si);
-  planner.setConnectionRadius(20);
-  planner.setCollisionCheckResolution(0.1);
-  planner.setRoadmap(graphName);
-
-  auto event = std::make_shared<gls::event::ShortestPathEvent>();
-  auto selector = std::make_shared<gls::selector::ForwardSelector>();
-  planner.setEvent(event);
-  planner.setSelector(selector);
-
-  planner.setup();
-  planner.setProblemDefinition(pdef);
-
-  // Solve the motion planning problem
-  ompl::base::PlannerStatus status;
-  waitForUser("Solve the problem.");
-  status = planner.solve(ompl::base::plannerNonTerminatingCondition());
-  waitForUser("Solved the problem.");
-
-  // Obtain required data if plan was successful
-  if (status == ompl::base::PlannerStatus::EXACT_SOLUTION)
+  for (std::size_t i = 0; i < stateList.size(); ++i)
   {
-    auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(
-      pdef->getSolutionPath());
-    path->printAsMatrix(std::cout);
+    waitForUser("Set State");
+    std::cout << "Validity: " << isEigenPointValid(world, robot, worldGroup, robotGroup, collisionDetector, collisionResult, collisionOptions, stateList[i]) << std::endl;
   }
 
   waitForUser("Press enter to exit");
