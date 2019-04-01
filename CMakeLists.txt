@@ -133,6 +133,14 @@ target_link_libraries(createSE2Graph
   ${BOOST_LIBRARIES})
 install(TARGETS createSE2Graph RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
+add_executable(createSE3Graph scripts/createSE3Graph.cpp)
+target_link_libraries(createSE3Graph
+  ${PROJECT_NAME}
+  ${DART_LIBRARIES}
+  ${aikido_LIBRARIES}
+  ${BOOST_LIBRARIES})
+install(TARGETS createSE3Graph RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 add_executable(visualizeFinalPath scripts/visualizeFinalPath.cpp)
 target_link_libraries(visualizeFinalPath
   ${PROJECT_NAME}
