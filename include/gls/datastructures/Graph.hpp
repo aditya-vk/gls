@@ -141,6 +141,12 @@ public:
   // Get the length of the edge.
   double getLength();
 
+  // Sets the length of the edge.
+  void setLength(double length);
+
+  // Get the length of the edge.
+  double getLength();
+
   // Sets the evaluation status.
   void setEvaluationStatus(EvaluationStatus evaluationStatus);
 
@@ -156,6 +162,9 @@ public:
   /// The length of the edge using the space distance metric.
   /// TODO (avk): Why is this public?
   double mLength;
+
+  /// States embedded in an edge
+  std::vector<StatePtr> mEdgeStates;
 
 private:
   /// Evaluation status.

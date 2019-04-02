@@ -1,3 +1,4 @@
+#include "datastructures/EdgeCollisionModel.hpp"
 #include "datastructures/Graph.hpp"
 #include "datastructures/SearchQueue.hpp"
 #include "datastructures/State.hpp"
