@@ -62,6 +62,7 @@ bool isPointValid(
   const Eigen::VectorXd haltonPoint
   )
 {
+  return true;
   // Convert positions to Eigen. DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
   Eigen::VectorXd positions(6);
   positions << 0.0, haltonPoint(2), 0.0, haltonPoint(0), 0.0, haltonPoint(1);
@@ -180,14 +181,14 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
 
 
   // Holds the vertices. Index is the line number. Content is the configuration.
-  std::string vertexFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/vertices.txt";
+  std::string vertexFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/free_vertices.txt";
 
   // Holds the edge information. <source vertex ID> <target vertex ID> <length>
-  std::string edgesFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/edges.txt";
+  std::string edgesFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/free_edges.txt";
 
   // Holds each edge's source and target configurations. Useful to visualize the edges.
   // Not necessary for graph generation.
-  std::string edgesVizFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/edges_viz.txt";
+  std::string edgesVizFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/free_edges_viz.txt";
 
   // Generate configurations.
   std::size_t numVertices = 0;
@@ -258,7 +259,7 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
 
         // Difference between angles
         angularDistance = std::abs(tangent[2]);
-        double distance = linearDistance + 10.0*angularDistance;
+        double distance = linearDistance + angularDistance;
 
         neighbors.insert(std::pair<double, std::size_t>(distance, j));
       }
@@ -269,6 +270,9 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
       int currentEdges = 0;
       for (auto it = neighbors.begin(); it != neighbors.end(); ++it)
       {
+        if (it->first > 20)
+          continue;
+
         edgesLogFile << i << " " << it->second << " " << it->first << std::endl;
 
         for (int index = 0; index < 3; ++index)

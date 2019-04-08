@@ -14,7 +14,7 @@
     <!-- PRL Things. -->
     <depend>dartsim</depend>
     <depend>aikido</depend>
-    <depend>libherb</depend>
+    <!-- <depend>libherb</depend> -->
     <depend>herb_description</depend>
     <depend>pr_assets</depend>
     <depend>pr_tsr</depend>

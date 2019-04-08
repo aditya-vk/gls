@@ -12,10 +12,10 @@ if __name__ == '__main__':
     G = nx.Graph()
 
     directory = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/"
-    default_vertex_location = directory + 'vertices.txt'
-    default_edges_location = directory + 'edges.txt'
-    edgeStates_location = directory + 'edges_viz.txt'
-    graph_save_location = directory + 'graph_se2_apartment.graphml'
+    default_vertex_location = directory + 'free_vertices.txt'
+    default_edges_location = directory + 'free_edges.txt'
+    edgeStates_location = directory + 'free_edges_viz.txt'
+    graph_save_location = directory + 'free_graph_se2_apartment.graphml'
 
     # Collect vertices.
     halton = numpy.loadtxt(default_vertex_location)
