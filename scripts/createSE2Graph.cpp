@@ -159,7 +159,7 @@ Eigen::VectorXd haltonSequence(
 
 // =====================================================================================
 void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numSamples, 
-                Eigen::VectorXd lowerLimits, Eigen::VectorXd upperLimits, double threshold, bool knn)
+                Eigen::VectorXd lowerLimits, Eigen::VectorXd upperLimits, double threshold, bool knn, int idx)
 {
 
   CollisionDetectorPtr collisionDetector
@@ -181,14 +181,14 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
 
 
   // Holds the vertices. Index is the line number. Content is the configuration.
-  std::string vertexFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/free_vertices.txt";
+  std::string vertexFile = "/home/prl/workspaces/lab-ws/src/planning_dataset/vertices_" + std::to_string(idx) + ".txt";
 
   // Holds the edge information. <source vertex ID> <target vertex ID> <length>
-  std::string edgesFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/free_edges.txt";
+  std::string edgesFile = "/home/prl/workspaces/lab-ws/src/planning_dataset/edges_" + std::to_string(idx) + ".txt";
 
   // Holds each edge's source and target configurations. Useful to visualize the edges.
   // Not necessary for graph generation.
-  std::string edgesVizFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/free_edges_viz.txt";
+  std::string edgesVizFile = "/home/prl/workspaces/lab-ws/src/planning_dataset/edges_viz_" + std::to_string(idx) + ".txt";
 
   // Generate configurations.
   std::size_t numVertices = 0;
@@ -196,7 +196,7 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
   std::srand((unsigned int) time(0));
 
   // Generate a uniform offset
-  Eigen::VectorXd offset = Eigen::VectorXd::Random(3)*0;
+  Eigen::VectorXd offset = Eigen::VectorXd::Random(3);
 
   std::vector<Eigen::VectorXd> configurations;
   while (true)
@@ -421,7 +421,11 @@ int main(int argc, char *argv[])
   waitForUser("The environment has been setup. Press key to start generating the graph");
 
   // Generate the Halton Points.
-  generateHaltonPoints(world, robot, numSamples, lowerLimits, upperLimits, threshold, true);
+  for (int idx = 0; idx < 10; ++idx)
+  {
+    generateHaltonPoints(world, robot, numSamples, lowerLimits, upperLimits, threshold, true, idx);
+  }
+  
 
   waitForUser("Press enter to exit");
   return 0;
