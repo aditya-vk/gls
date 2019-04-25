@@ -10,7 +10,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
-    for idx in range(10):
+    for idx in range(25):
 
         G = nx.Graph()
 

@@ -62,7 +62,6 @@ bool isPointValid(
   const Eigen::VectorXd haltonPoint
   )
 {
-  return true;
   // Convert positions to Eigen. DART To OMPL settings: angles, positions: ax, az, ay, x, z, y.
   Eigen::VectorXd positions(6);
   positions << 0.0, haltonPoint(2), 0.0, haltonPoint(0), 0.0, haltonPoint(1);
@@ -159,7 +158,7 @@ Eigen::VectorXd haltonSequence(
 
 // =====================================================================================
 void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numSamples, 
-                Eigen::VectorXd lowerLimits, Eigen::VectorXd upperLimits, double threshold, bool knn, int idx)
+                Eigen::VectorXd lowerLimits, Eigen::VectorXd upperLimits, double threshold, bool knn, Eigen::VectorXd offset, int idx)
 {
 
   CollisionDetectorPtr collisionDetector
@@ -181,22 +180,19 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
 
 
   // Holds the vertices. Index is the line number. Content is the configuration.
-  std::string vertexFile = "/home/prl/workspaces/lab-ws/src/planning_dataset/vertices_" + std::to_string(idx) + ".txt";
+  std::string vertexFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/vertices_" + std::to_string(idx) + ".txt";
 
   // Holds the edge information. <source vertex ID> <target vertex ID> <length>
-  std::string edgesFile = "/home/prl/workspaces/lab-ws/src/planning_dataset/edges_" + std::to_string(idx) + ".txt";
+  std::string edgesFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/edges_" + std::to_string(idx) + ".txt";
 
   // Holds each edge's source and target configurations. Useful to visualize the edges.
   // Not necessary for graph generation.
-  std::string edgesVizFile = "/home/prl/workspaces/lab-ws/src/planning_dataset/edges_viz_" + std::to_string(idx) + ".txt";
+  std::string edgesVizFile = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/edges_viz_" + std::to_string(idx) + ".txt";
 
   // Generate configurations.
   std::size_t numVertices = 0;
   int index = 1;
   std::srand((unsigned int) time(0));
-
-  // Generate a uniform offset
-  Eigen::VectorXd offset = Eigen::VectorXd::Random(3);
 
   std::vector<Eigen::VectorXd> configurations;
   while (true)
@@ -259,7 +255,7 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
 
         // Difference between angles
         angularDistance = std::abs(tangent[2]);
-        double distance = linearDistance + angularDistance;
+        double distance = linearDistance + 10.0*angularDistance;
 
         neighbors.insert(std::pair<double, std::size_t>(distance, j));
       }
@@ -270,9 +266,6 @@ void generateHaltonPoints(SkeletonPtr world, SkeletonPtr robot, std::size_t numS
       int currentEdges = 0;
       for (auto it = neighbors.begin(); it != neighbors.end(); ++it)
       {
-        if (it->first > 20)
-          continue;
-
         edgesLogFile << i << " " << it->second << " " << it->first << std::endl;
 
         for (int index = 0; index < 3; ++index)
@@ -421,11 +414,11 @@ int main(int argc, char *argv[])
   waitForUser("The environment has been setup. Press key to start generating the graph");
 
   // Generate the Halton Points.
-  for (int idx = 0; idx < 10; ++idx)
+  for (int idx = 0; idx < 25; ++idx)
   {
-    generateHaltonPoints(world, robot, numSamples, lowerLimits, upperLimits, threshold, true, idx);
+    auto offset = Eigen::VectorXd::Random(3);
+    generateHaltonPoints(world, robot, numSamples, lowerLimits, upperLimits, threshold, true, offset, idx);
   }
-  
 
   waitForUser("Press enter to exit");
   return 0;
