@@ -57,10 +57,6 @@ void GLS::setup()
   if (!mGraphSetup)
     std::invalid_argument("Graph has not been provided.");
 
-  // TODO (avk): If the graph is not provided, use implicit representation
-  // for the edges using the NearestNeighbor representation.
-  // Check if roadmap has been provided.
-
   OMPL_INFORM("Planner has been setup.");
 }
 
@@ -220,10 +216,8 @@ void GLS::clear()
 
 // ============================================================================
 ompl::base::PlannerStatus GLS::solve(
-    const ompl::base::PlannerTerminationCondition& /*ptc*/)
+    const ompl::base::PlannerTerminationCondition& ptc)
 {
-  // TODO (avk): Use ptc to terminate the search.
-
   // Return if source or target are in collision.
   if (evaluateVertex(mSourceVertex) == CollisionStatus::Collision)
   {
@@ -248,8 +242,12 @@ ompl::base::PlannerStatus GLS::solve(
   assert(currentSize - previousSize == 1);
 
   // Run in loop.
-  while (!mExtendQueue.isEmpty())
+  while (ptc == false)
   {
+    // If search has been exhausted, exit.
+    if (!mExtendQueue.isEmpty())
+      break;
+
     // Extend the tree till the event is triggered.
     extendSearchTree();
 
@@ -258,7 +256,11 @@ ompl::base::PlannerStatus GLS::solve(
 
     // If the plan is successful, return.
     if (mPlannerStatus == PlannerStatus::Solved)
-      break;
+    {
+      OMPL_INFORM("Current Solution Cost: ", mGraph[mTargetVertex].getCostToCome());
+      transformGraph();
+      initialize();
+    }
   }
 
   if (mPlannerStatus == PlannerStatus::Solved)
@@ -918,6 +920,18 @@ ompl::base::PathPtr GLS::constructSolution(
   }
   path->reverse();
   return ompl::base::PathPtr(path);
+}
+
+// ============================================================================
+void GLS::transformGraph()
+{
+  return;
+}
+
+// ============================================================================
+void GLS::initialize()
+{
+  return;
 }
 
 } // namespace gls

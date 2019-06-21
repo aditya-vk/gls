@@ -19,6 +19,7 @@
 #include <ompl/base/ScopedState.h>
 #include <ompl/base/State.h>
 #include <ompl/base/StateSpace.h>
+#include <ompl/base/spaces/RealVectorStateSpace.h>
 
 namespace gls {
 namespace io {
@@ -67,16 +68,13 @@ inline void put(
 {
   get(map.mPropMap, k).reset(new StateWrapper(map.mSpace));
   ompl::base::State* ver_state{get(map.mPropMap, k)->getOMPLState()};
-
-  std::vector<double> values;
-  values.resize(map.mDim);
-
+  double* values{
+      ver_state->as<ompl::base::RealVectorStateSpace::StateType>()->values};
   std::stringstream ss(representation);
   for (size_t ui = 0; ui < map.mDim; ui++)
   {
     ss >> values[ui];
   }
-  map.mSpace->copyFromReals(ver_state, values);
 }
 
 /* RoadmapFromFilePutEdgeLengthMap */

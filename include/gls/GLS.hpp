@@ -155,6 +155,12 @@ private:
   ompl::base::PathPtr constructSolution(
       const gls::datastructures::Vertex&, const gls::datastructures::Vertex&);
 
+  /// Transforms the graph.
+  void transformGraph();
+
+  /// Initializes the search.
+  void initialize();
+
   /// The pointer to the OMPL state space.
   const ompl::base::StateSpacePtr mSpace;
 
