@@ -27,7 +27,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 // roscpp
-#include "ros/ros.h"
+//#include "ros/ros.h"
 
 // Custom header files
 #include "gls/GLS.hpp"
@@ -107,7 +107,7 @@ make_state(const ompl::base::StateSpacePtr space, double x, double y)
 /// The main function.
 int main(int argc, char *argv[])
 {
-  ros::init(argc, argv, "test2d_image");
+//  ros::init(argc, argv, "test2d_image");
   po::options_description desc("2D Map Planner Options");
   desc.add_options()
       ("help,h", "produce help message")
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
     auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(pdef->getSolutionPath());
     std::cout << "Solution Path Cost: " << planner.getBestPathCost() << std::endl;
     std::cout << "Number of Edge Evaluations: " << planner.getNumberOfEdgeEvaluations() << std::endl;
-    displayPath(obstacleLocation, path);
+//    displayPath(obstacleLocation, path);
     return 0;
   }
 

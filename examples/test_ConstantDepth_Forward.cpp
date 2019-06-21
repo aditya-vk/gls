@@ -27,7 +27,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 // roscpp
-#include "ros/ros.h"
+//#include "ros/ros.h"
 
 // Custom header files
 #include "gls/GLS.hpp"
@@ -107,7 +107,7 @@ make_state(const ompl::base::StateSpacePtr space, double x, double y)
 /// The main function.
 int main(int argc, char *argv[])
 {
-  ros::init(argc, argv, "test2d_image");
+//  ros::init(argc, argv, "test2d_image");
   po::options_description desc("2D Map Planner Options");
   desc.add_options()
       ("help,h", "produce help message")

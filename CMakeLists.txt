@@ -17,7 +17,7 @@ endif()
 # Link Libraries
 #================================================================================
 
-find_package(catkin REQUIRED COMPONENTS roscpp)
+find_package(catkin REQUIRED)
 find_package(ompl REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread filesystem graph program_options system)
 find_package(OpenCV REQUIRED)
@@ -193,5 +193,5 @@ endif()
 
 # This custom target doesn't affect building the project but is only for
 # displaying the header files in IDEs.
-FILE(GLOB_RECURSE LibFiles "include/*.hpp")
+FILE(GLOB_RECURSE LibFiles "include/*")
 add_custom_target(headers SOURCES ${LibFiles})
