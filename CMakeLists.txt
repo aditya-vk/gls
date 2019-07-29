@@ -22,6 +22,30 @@ find_package(ompl REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread filesystem graph program_options system)
 find_package(OpenCV REQUIRED)
 
+find_package(DART REQUIRED
+  COMPONENTS utils-urdf optimizer-nlopt utils)
+find_package(aikido 0.0.2 REQUIRED
+  COMPONENTS
+    common
+    constraint
+    control
+    control_ros
+    distance
+    perception
+    planner
+    planner_kunzretimer
+    planner_ompl
+    planner_parabolic
+    planner_vectorfield
+    robot
+    rviz
+    statespace
+    io
+)
+find_package(libherb REQUIRED)
+find_package(pr_assets REQUIRED)
+find_package(pr_tsr REQUIRED)
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
@@ -34,6 +58,10 @@ include_directories(
   ${OMPL_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
+  ${DART_INCLUDE_DIRS}
+  ${libherb_INCLUDE_DIRS}
+  ${pr_assets_INCLUDE_DIRS}
+  ${pr_tsr_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -74,9 +102,35 @@ add_executable(test_ConstantDepth_Forward examples/test_ConstantDepth_Forward.cp
 target_link_libraries(test_ConstantDepth_Forward ${PROJECT_NAME} ${OpenCV_LIBS})
 install(TARGETS test_ConstantDepth_Forward RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-add_executable(test_cycle examples/test_cycle.cpp)
-target_link_libraries(test_cycle ${PROJECT_NAME} ${OpenCV_LIBS})
-install(TARGETS test_cycle RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+# Reaching for the shelf in a vanilla setting.
+add_executable(reach_for_shelf_vanilla examples/reach_for_shelf_vanilla.cpp)
+target_link_libraries(reach_for_shelf_vanilla
+  ${PROJECT_NAME}
+  ${DART_LIBRARIES}
+  ${aikido_LIBRARIES}
+  ${BOOST_LIBRARIES}
+  libherb)
+install(TARGETS reach_for_shelf_vanilla RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+# Reaching for the shelf in a constrained setting.
+add_executable(reach_for_shelf_constrained examples/reach_for_shelf_constrained.cpp)
+target_link_libraries(reach_for_shelf_constrained
+  ${PROJECT_NAME}
+  ${DART_LIBRARIES}
+  ${aikido_LIBRARIES}
+  ${BOOST_LIBRARIES}
+  libherb)
+install(TARGETS reach_for_shelf_constrained RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+# Reaching into the shelf.
+add_executable(reach_into_shelf examples/reach_into_shelf.cpp)
+target_link_libraries(reach_into_shelf
+  ${PROJECT_NAME}
+  ${DART_LIBRARIES}
+  ${aikido_LIBRARIES}
+  ${BOOST_LIBRARIES}
+  libherb)
+install(TARGETS reach_into_shelf RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #================================================================================
 # Installation
