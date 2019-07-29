@@ -87,20 +87,12 @@ add_library(${PROJECT_NAME}
   src/selector/BackwardSelector.cpp
   src/selector/FailFastSelector.cpp
   src/selector/ForwardSelector.cpp
+  src/utils/VanderCorput.cpp
 )
 
 #================================================================================
 # Example Scripts
 #================================================================================
-
-# Correctness Test Script
-add_executable(test_ShortestPath_Forward examples/test_ShortestPath_Forward.cpp)
-target_link_libraries(test_ShortestPath_Forward ${PROJECT_NAME} ${OpenCV_LIBS})
-install(TARGETS test_ShortestPath_Forward RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-
-add_executable(test_ConstantDepth_Forward examples/test_ConstantDepth_Forward.cpp)
-target_link_libraries(test_ConstantDepth_Forward ${PROJECT_NAME} ${OpenCV_LIBS})
-install(TARGETS test_ConstantDepth_Forward RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 # Reaching for the shelf in a vanilla setting.
 add_executable(reach_for_shelf_vanilla examples/reach_for_shelf_vanilla.cpp)
