@@ -43,7 +43,7 @@ find_package(aikido 0.0.2 REQUIRED
     statespace
     io
 )
-#find_package(libherb REQUIRED)
+find_package(libherb REQUIRED)
 find_package(pr_assets REQUIRED)
 find_package(pr_tsr REQUIRED)
 
@@ -108,14 +108,14 @@ add_executable(test_cycle examples/test_cycle.cpp)
 target_link_libraries(test_cycle ${PROJECT_NAME} ${OpenCV_LIBS})
 install(TARGETS test_cycle RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-# add_executable(exampleHERB examples/exampleHERB.cpp)
-# target_link_libraries(exampleHERB
-#   ${PROJECT_NAME}
-#   ${DART_LIBRARIES}
-#   ${aikido_LIBRARIES}
-#   ${BOOST_LIBRARIES}
-#   libherb)
-# install(TARGETS exampleHERB RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+add_executable(exampleHERB examples/exampleHERB.cpp)
+target_link_libraries(exampleHERB
+  ${PROJECT_NAME}
+  ${DART_LIBRARIES}
+  ${aikido_LIBRARIES}
+  ${BOOST_LIBRARIES}
+  libherb)
+install(TARGETS exampleHERB RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 add_executable(test_SE2_OMPLApp examples/test_SE2_OMPLApp.cpp)
 target_link_libraries(test_SE2_OMPLApp

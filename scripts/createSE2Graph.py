@@ -9,8 +9,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    indices = [100, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
 
-    for idx in range(25):
+    for idx in indices:
 
         G = nx.Graph()
 

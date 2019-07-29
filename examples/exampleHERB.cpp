@@ -147,10 +147,10 @@ int main(int argc, char *argv[])
 // =======================
 
   Eigen::VectorXd leftRelaxedHome(7);
-  leftRelaxedHome << 0.54, -1.50, 0.26, 1.90, 1.16, 0.87, 1.43;
+  leftRelaxedHome << 0.54, -1.80, 0.90, 1.90, 1.16, 0.87, 1.70;
 
   Eigen::VectorXd rightRelaxedHome(7);
-  rightRelaxedHome << 5.65, -1.50, -0.26, 1.96, -1.15, 0.87, -1.43;
+  rightRelaxedHome << 5.65, -1.80, -0.90, 1.90, -1.16, 0.87, -1.70;
 
   Eigen::VectorXd rightReachPhone(7);
   rightReachPhone << 5.65, -0.78, 1.45, -0.70, -0.82, -0.28, -1.43;
@@ -162,7 +162,8 @@ int main(int argc, char *argv[])
   leftMenacing << 2.60, -1.90, 0.00, 2.20, 0.00, 0.00, 0.00;
 
   Eigen::VectorXd rightMenacing(7);
-  rightMenacing << 3.68, -1.90, 0.00, 2.20, 0.00, 0.00, 0.00;
+  // rightMenacing << 3.68, -1.90, 0.00, 2.20, 0.00, 0.00, 0.00; // Original
+  rightMenacing << 3.68, -1.90, 0.00, 2.20, 0.00, -0.4, 1.0;
 
   Eigen::VectorXd rightRetrieveUp(7);
   rightRetrieveUp << 3.68, -1.90, 0.00, 0.00, 1.20, -0.12, 0.00;
@@ -215,64 +216,40 @@ int main(int argc, char *argv[])
 
   // Resolves package:// URIs by emulating the behavior of 'catkin_find'.
   const auto resourceRetriever = std::make_shared<aikido::io::CatkinResourceRetriever>();
+  const std::string bookcaseURDFUri("package://pr_assets/data/furniture/bookcase.urdf");
   const std::string tableURDFUri("package://pr_assets/data/furniture/table.urdf");
-  const std::string shelfURDFUri("package://pr_assets/data/furniture/bookcase.urdf");
-  const std::string pitcherURDFUri("package://pr_assets/data/objects/rubbermaid_ice_guard_pitcher.urdf");
-  const std::string roofURDFUri("package://pr_assets/data/furniture/table.urdf");
 
   // Initial perception
+  SkeletonPtr bookcase;
+  Eigen::Isometry3d bookcasePose;
+
   SkeletonPtr table;
   Eigen::Isometry3d tablePose;
-  SkeletonPtr shelf;
-  Eigen::Isometry3d shelfPose;
 
-  SkeletonPtr pitcher;
-  Eigen::Isometry3d pitcherPose;
-  SkeletonPtr roof;
-  Eigen::Isometry3d roofPose;
-
-  // Poses for table
-  tablePose = Eigen::Isometry3d::Identity();
-  tablePose.translation() = Eigen::Vector3d(0.85, -0.4, 0);
+  // Poses for bookcase
+  bookcasePose = Eigen::Isometry3d::Identity();
+  bookcasePose.translation() = Eigen::Vector3d(0.75, 0.15, 0);
   Eigen::Matrix3d rot;
-  rot = Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitZ())
+  rot = Eigen::AngleAxisd(-M_PI_2, Eigen::Vector3d::UnitZ())
         * Eigen::AngleAxisd(0, Eigen::Vector3d::UnitY())
         * Eigen::AngleAxisd(0, Eigen::Vector3d::UnitX());
-  tablePose.linear() = rot;
+  bookcasePose.linear() = rot;
 
   // Poses for Shelf
-  shelfPose = Eigen::Isometry3d::Identity();
-  shelfPose.translation() = Eigen::Vector3d(-0.0, 0.75, 0);
+  tablePose = Eigen::Isometry3d::Identity();
+  tablePose.translation() = Eigen::Vector3d(-0.4, -1.0, 0);
   rot = Eigen::AngleAxisd(0, Eigen::Vector3d::UnitZ())
        * Eigen::AngleAxisd(0, Eigen::Vector3d::UnitY())
        * Eigen::AngleAxisd(0, Eigen::Vector3d::UnitX());
-  shelfPose.linear() = rot;
-
-    // Poses for Shelf
-  pitcherPose = Eigen::Isometry3d::Identity();
-  pitcherPose.translation() = tablePose.translation() + 
-    Eigen::Vector3d(0.0, 0.0, 0.73);
-
-    // Poses for Oven
-  roofPose = Eigen::Isometry3d::Identity();
-  roofPose.translation() = tablePose.translation() + 
-    Eigen::Vector3d(0.0, 0.0, 2.3);
-  rot = Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitZ())
-       * Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY())
-       * Eigen::AngleAxisd(0, Eigen::Vector3d::UnitX());
-  roofPose.linear() = rot;
+  tablePose.linear() = rot;
 
   // Load objects
+  bookcase = makeBodyFromURDF(resourceRetriever, bookcaseURDFUri, bookcasePose);
   table = makeBodyFromURDF(resourceRetriever, tableURDFUri, tablePose);
-  shelf = makeBodyFromURDF(resourceRetriever, shelfURDFUri, shelfPose);
-  pitcher = makeBodyFromURDF(resourceRetriever, pitcherURDFUri, pitcherPose);
-  roof = makeBodyFromURDF(resourceRetriever, roofURDFUri, roofPose);
 
   // Add all objects to World
+  env->addSkeleton(bookcase);
   env->addSkeleton(table);
-  env->addSkeleton(shelf);
-  env->addSkeleton(pitcher);
-  // env->addSkeleton(roof);
 
   // Set up collision constraints for planning.
   CollisionDetectorPtr collisionDetector
@@ -289,11 +266,7 @@ int main(int argc, char *argv[])
         robot.getLeftHand()->getMetaSkeleton().get());
 
   std::shared_ptr<CollisionGroup> envGroup
-      = collisionDetector->createCollisionGroup(table.get(),
-                                                shelf.get()
-                                                // pitcher.get()
-                                                // roof.get()
-                                                );
+      = collisionDetector->createCollisionGroup(bookcase.get(), table.get());
 
   auto rightCollisionFreeConstraint = std::make_shared<CollisionFree>(
         rightArmSpace, robot.getRightArm()->getMetaSkeleton(), collisionDetector);
@@ -307,9 +280,7 @@ int main(int argc, char *argv[])
 
   rightArm->setPositions(rightRelaxedHome);
   leftArm->setPositions(leftRelaxedHome);
-  robot.getRightHand()->executePreshape("closed").wait();
-
-  // auto planner = OMPLConfigurationToConfigurationPlanner<LRAstar::LRAstar>(rightArmSpace, nullptr);
+  robot.getRightHand()->executePreshape("partial_open").wait();
 
   // Define the state space: R^7
   auto space = std::make_shared<ompl::base::RealVectorStateSpace>(7);
@@ -345,13 +316,13 @@ int main(int argc, char *argv[])
   // Problem Definition
   ompl::base::ProblemDefinitionPtr pdef(new ompl::base::ProblemDefinition(si));
   pdef->addStartState(make_state(space, rightRelaxedHome));
-  pdef->setGoalState(make_state(space, rightFarLeftReach));
+  pdef->setGoalState(make_state(space, rightMenacing));
 
   // Setup planner
   gls::GLS planner(si);
   planner.setConnectionRadius(1.5);
   planner.setCollisionCheckResolution(0.1);
-  planner.setRoadmap("/home/adityavk/workspaces/lab-ws/src/planning_dataset/herb_priors_hard.graphml");
+  planner.setRoadmap("/home/adityavk/workspaces/lab-ws/src/planning_dataset/data/herb/herb_halton_30000_r130_1.graphml");
 
   auto event = std::make_shared<gls::event::ShortestPathEvent>();
   auto selector = std::make_shared<gls::selector::ForwardSelector>();
@@ -398,8 +369,7 @@ int main(int argc, char *argv[])
     }
 
     auto timedTrajectory = robot.retimePath(rightArm, untimedTrajectory.get());
-    ROS_INFO("Press key to execute");
-    std::cin.get();
+    waitForUser("Press key to execute");
     robot.executeTrajectory(std::move(timedTrajectory)).wait();
   }
 
