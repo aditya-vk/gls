@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 
   // Solve the motion planning problem
   ompl::base::PlannerStatus status;
-  status = planner.solve(ompl::base::plannerNonTerminatingCondition());
+  status = planner.solve(5);
 
   // Obtain required data if plan was successful
   if (status == ompl::base::PlannerStatus::EXACT_SOLUTION)

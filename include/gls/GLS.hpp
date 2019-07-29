@@ -59,6 +59,10 @@ public:
       const ompl::base::ProblemDefinitionPtr& pdef) override;
 
   /// Solve the planning problem.
+  /// \param[in] timeout Time available for the planner to return solution.
+  ompl::base::PlannerStatus solve(double timeout);
+
+  /// Solve the planning problem.
   /// \param[in] ptc OMPL Planning Termination Condition.
   ompl::base::PlannerStatus solve(
       const ompl::base::PlannerTerminationCondition& ptc);

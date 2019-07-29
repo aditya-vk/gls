@@ -215,6 +215,12 @@ void GLS::clear()
 }
 
 // ============================================================================
+ompl::base::PlannerStatus GLS::solve(double timeout)
+{
+  return solve(ompl::base::timedPlannerTerminationCondition(timeout));
+}
+
+// ============================================================================
 ompl::base::PlannerStatus GLS::solve(
     const ompl::base::PlannerTerminationCondition& ptc)
 {
@@ -235,17 +241,14 @@ ompl::base::PlannerStatus GLS::solve(
   mGraph[mSourceVertex].setVisitStatus(VisitStatus::Visited);
   mEvent->updateVertexProperties(mSourceVertex);
 
-  assert(mExtendQueue.isEmpty());
-  auto previousSize = mExtendQueue.getSize();
+  // Add source to the tree.
   mExtendQueue.addVertexWithValue(mSourceVertex, mGraph[mSourceVertex].getEstimatedTotalCost());
-  auto currentSize = mExtendQueue.getSize();
-  assert(currentSize - previousSize == 1);
 
   // Run in loop.
   while (ptc == false)
   {
     // If search has been exhausted, exit.
-    if (!mExtendQueue.isEmpty())
+    if (mExtendQueue.isEmpty())
       break;
 
     // Extend the tree till the event is triggered.
@@ -257,7 +260,8 @@ ompl::base::PlannerStatus GLS::solve(
     // If the plan is successful, return.
     if (mPlannerStatus == PlannerStatus::Solved)
     {
-      OMPL_INFORM("Current Solution Cost: ", mGraph[mTargetVertex].getCostToCome());
+      setBestPathCost(mGraph[mTargetVertex].getCostToCome());
+      std::cout << "Current Solution Cost: " << getBestPathCost() << std::endl;
       transformGraph();
       initialize();
     }
@@ -931,7 +935,43 @@ void GLS::transformGraph()
 // ============================================================================
 void GLS::initialize()
 {
-  return;
+  // Clear the queues.
+  mExtendQueue.clear();
+  mRewireQueue.clear();
+  mUpdateQueue.clear();
+  mRewireSet.clear();
+
+  // Reset the vertices and edges.
+  VertexIter vi, vi_end;
+  for (boost::tie(vi, vi_end) = vertices(mGraph); vi != vi_end; ++vi)
+  {
+    mGraph[*vi].setCostToCome(std::numeric_limits<double>::max());
+    mGraph[*vi].setHeuristic(std::numeric_limits<double>::max());
+    mGraph[*vi].removeAllChildren();
+    mGraph[*vi].setVisitStatus(VisitStatus::NotVisited);
+    mGraph[*vi].setCollisionStatus(CollisionStatus::Free);
+  }
+
+  EdgeIter ei, ei_end;
+  for (boost::tie(ei, ei_end) = edges(mGraph); ei != ei_end; ++ei)
+  {
+    mGraph[*ei].setEvaluationStatus(EvaluationStatus::NotEvaluated);
+    mGraph[*ei].setCollisionStatus(CollisionStatus::Free);
+  }
+
+  mTreeValidityStatus = TreeValidityStatus::Valid;
+
+  // Add the source vertex to the search tree with zero cost-to-come.
+  mGraph[mSourceVertex].setVisitStatus(VisitStatus::Visited);
+  mGraph[mSourceVertex].setCostToCome(0);
+  mGraph[mSourceVertex].setHeuristic(getGraphHeuristic(mSourceVertex));
+  mEvent->updateVertexProperties(mSourceVertex);
+
+  // Add source to the tree.
+  mExtendQueue.addVertexWithValue(mSourceVertex, mGraph[mSourceVertex].getEstimatedTotalCost());
+
+  // Reset planner status.
+  mPlannerStatus = PlannerStatus::NotSolved;
 }
 
 } // namespace gls
