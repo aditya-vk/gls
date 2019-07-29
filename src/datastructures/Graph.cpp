@@ -157,6 +157,12 @@ double EdgeProperties::getLength()
 }
 
 // ============================================================================
+std::vector<StatePtr>& EdgeProperties::getEdgeStates()
+{
+  return mEdgeStates;
+}
+
+// ============================================================================
 void EdgeProperties::setEvaluationStatus(EvaluationStatus evaluationStatus)
 {
   mEvaluationStatus = evaluationStatus;

@@ -24,6 +24,7 @@
 #include "gls/event.hpp"
 #include "gls/io.hpp"
 #include "gls/selector.hpp"
+#include "gls/utils.hpp"
 
 namespace gls {
 
@@ -118,6 +119,9 @@ private:
   /// Sets up the event and the selector.
   void setupPreliminaries();
 
+  /// Helper function to cache the states embedded in an edge for collision.
+  void initializeEdgePoints(const gls::datastructures::Edge&);
+
   /// Returns edge between source and target vertices.
   gls::datastructures::Edge getEdge(
       gls::datastructures::Vertex, gls::datastructures::Vertex);
@@ -209,6 +213,9 @@ private:
 
   /// Target vertex.
   gls::datastructures::Vertex mTargetVertex;
+
+  /// Edge evaluation resolution manager.
+  gls::utils::VanderCorput mVanderCorput;
 
   /// TODO (avk): Move these into PlannerStatus class.
   /// Number of Edge Evaluations.
