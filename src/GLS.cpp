@@ -84,9 +84,9 @@ void GLS::setProblemDefinition(const ompl::base::ProblemDefinitionPtr& pdef)
 void GLS::setupPreliminaries()
 {
   // Set default edge values.
-  EdgeIter ei, ei_end;
-  for (boost::tie(ei, ei_end) = edges(mGraph); ei != ei_end; ++ei)
-    initializeEdgePoints(*ei);
+  // EdgeIter ei, ei_end;
+  // for (boost::tie(ei, ei_end) = edges(mGraph); ei != ei_end; ++ei)
+    // initializeEdgePoints(*ei);
 
   // TODO (avk): Should I kill these pointers manually?
   StatePtr sourceState(new gls::datastructures::State(mSpace));
@@ -136,7 +136,7 @@ void GLS::setupPreliminaries()
       mGraph[newEdge.first].setLength(sourceDistance);
       mGraph[newEdge.first].setEvaluationStatus(EvaluationStatus::NotEvaluated);
       mGraph[newEdge.first].setCollisionStatus(CollisionStatus::Free);
-      initializeEdgePoints(newEdge.first);
+      // initializeEdgePoints(newEdge.first);
     }
 
     if (targetDistance < mConnectionRadius)
@@ -149,7 +149,7 @@ void GLS::setupPreliminaries()
       mGraph[newEdge.first].setLength(targetDistance);
       mGraph[newEdge.first].setEvaluationStatus(EvaluationStatus::NotEvaluated);
       mGraph[newEdge.first].setCollisionStatus(CollisionStatus::Free);
-      initializeEdgePoints(newEdge.first);
+      // initializeEdgePoints(newEdge.first);
     }
   }
 
@@ -161,7 +161,7 @@ void GLS::setupPreliminaries()
           sourceState->getOMPLState(), targetState->getOMPLState()));
   mGraph[newEdge.first].setEvaluationStatus(EvaluationStatus::NotEvaluated);
   mGraph[newEdge.first].setCollisionStatus(CollisionStatus::Free);
-  initializeEdgePoints(newEdge.first);
+  // initializeEdgePoints(newEdge.first);
 
   // Setup the event.
   mEvent->setup(&mGraph, mSourceVertex, mTargetVertex);
@@ -477,6 +477,7 @@ CollisionStatus GLS::evaluateVertex(Vertex v)
 CollisionStatus GLS::evaluateEdge(const Edge& e)
 {
   mNumberOfEdgeEvaluations++;
+  std::cout << mNumberOfEdgeEvaluations << " ";
 
   // Access the validity checker.
   auto validityChecker = si_->getStateValidityChecker();
@@ -501,13 +502,27 @@ CollisionStatus GLS::evaluateEdge(const Edge& e)
     return CollisionStatus::Collision;
   }
 
-  std::vector<StatePtr>& edgeStates = mGraph[e].getEdgeStates();
-
-  for (int i = 1; i < edgeStates.size() - 1; ++i)
+  // Evaluate the state in between.
+  int maxSteps = 1.0 / mCollisionCheckResolution;
+  for (int multiplier = 1; multiplier < maxSteps + 1; ++multiplier)
   {
-    if (!validityChecker->isValid(edgeStates[i]->getOMPLState()))
-      return CollisionStatus::Collision;    
+    double interpolationStep = mCollisionCheckResolution * multiplier;
+    assert(interpolationStep <= 1);
+    StatePtr midVertex(new gls::datastructures::State(mSpace));
+    mSpace->interpolate(
+        startState, endState, interpolationStep, midVertex->getOMPLState());
+
+    if (!validityChecker->isValid(midVertex->getOMPLState()))
+      return CollisionStatus::Collision;
   }
+
+  // std::vector<StatePtr>& edgeStates = mGraph[e].getEdgeStates();
+
+  // for (int i = 1; i < edgeStates.size() - 1; ++i)
+  // {
+  //   if (!validityChecker->isValid(edgeStates[i]->getOMPLState()))
+  //     return CollisionStatus::Collision;    
+  // }
 
   // Edge is collision-free.
   return CollisionStatus::Free;
