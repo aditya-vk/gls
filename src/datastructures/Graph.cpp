@@ -6,7 +6,7 @@ namespace gls {
 namespace datastructures {
 
 // ============================================================================
-void VertexProperties::setState(StatePtr state)
+void VertexProperties::updateState(StatePtr state)
 {
   mState = state;
 }
@@ -18,9 +18,10 @@ StatePtr VertexProperties::getState()
 }
 
 // ============================================================================
-void VertexProperties::setCostToCome(double cost)
+void VertexProperties::updateCost(double cost)
 {
   mCostToCome = cost;
+  mTotalCost = mCostToCome + mHeuristic;
 }
 
 // ============================================================================
@@ -30,9 +31,10 @@ double VertexProperties::getCostToCome()
 }
 
 // ============================================================================
-void VertexProperties::setHeuristic(double heuristic)
+void VertexProperties::updateHeuristic(double heuristic)
 {
   mHeuristic = heuristic;
+  mTotalCost = mCostToCome + mHeuristic;
 }
 
 // ============================================================================
@@ -42,13 +44,7 @@ double VertexProperties::getHeuristic()
 }
 
 // ============================================================================
-double VertexProperties::getEstimatedTotalCost()
-{
-  return mCostToCome + mHeuristic;
-}
-
-// ============================================================================
-void VertexProperties::setParent(Vertex parent)
+void VertexProperties::updateParent(Vertex parent)
 {
   mParent = parent;
 }
@@ -66,7 +62,7 @@ std::set<Vertex>& VertexProperties::getChildren()
 }
 
 // ============================================================================
-void VertexProperties::setChildren(std::set<Vertex> children)
+void VertexProperties::updateChildren(std::set<Vertex> children)
 {
   mChildren = children;
 }
@@ -121,7 +117,7 @@ bool VertexProperties::hasChild(Vertex child)
 }
 
 // ============================================================================
-void VertexProperties::setVisitStatus(VisitStatus status)
+void VertexProperties::updateVisitStatus(VisitStatus status)
 {
   mVisitStatus = status;
 }
@@ -133,7 +129,7 @@ VisitStatus VertexProperties::getVisitStatus()
 }
 
 // ============================================================================
-void VertexProperties::setCollisionStatus(CollisionStatus status)
+void VertexProperties::updateCollisionStatus(CollisionStatus status)
 {
   mCollisionStatus = status;
 }
@@ -145,7 +141,7 @@ CollisionStatus VertexProperties::getCollisionStatus()
 }
 
 // ============================================================================
-void EdgeProperties::setLength(double length)
+void EdgeProperties::updateLength(double length)
 {
   mLength = length;
 }
@@ -157,13 +153,7 @@ double EdgeProperties::getLength()
 }
 
 // ============================================================================
-std::vector<StatePtr>& EdgeProperties::getEdgeStates()
-{
-  return mEdgeStates;
-}
-
-// ============================================================================
-void EdgeProperties::setEvaluationStatus(EvaluationStatus evaluationStatus)
+void EdgeProperties::updateEvaluationStatus(EvaluationStatus evaluationStatus)
 {
   mEvaluationStatus = evaluationStatus;
 }
@@ -175,7 +165,7 @@ EvaluationStatus EdgeProperties::getEvaluationStatus()
 }
 
 // ============================================================================
-void EdgeProperties::setCollisionStatus(CollisionStatus status)
+void EdgeProperties::updateCollisionStatus(CollisionStatus status)
 {
   mCollisionStatus = status;
 }

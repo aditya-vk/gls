@@ -35,13 +35,10 @@ void Event::updateVertexProperties(SearchQueue& updateQueue)
 		Vertex vertex = updateQueue.popTopVertex();	
 		updateVertexProperties(vertex);
 
+    // Add the children into the queue for update.
 		auto children = graph[vertex].getChildren();
 	  for (auto iterV = children.begin(); iterV != children.end(); ++iterV)
-	  {
-	  	// Add the children into the queue for update.
-	    assert(!updateQueue.hasVertexWithValue(*iterV, graph[*iterV].getCostToCome()));
-    	updateQueue.addVertexWithValue(*iterV, graph[*iterV].getCostToCome());
-	  }
+      updateQueue.addVertex(*iterV);
 	}
 }
 

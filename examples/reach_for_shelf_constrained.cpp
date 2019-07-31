@@ -408,7 +408,6 @@ int main(int argc, char *argv[])
     // Setup planner
     gls::GLS planner(si);
     planner.setConnectionRadius(1.5);
-    planner.setCollisionCheckResolution(0.015);
     planner.setRoadmap(graph_file);
 
     auto event = std::make_shared<gls::event::ShortestPathEvent>();

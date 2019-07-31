@@ -46,7 +46,7 @@ class GLS : public ompl::base::Planner
 public:
   /// Constructor.
   /// \param[in] si The OMPL space information manager.
-  explicit GLS(const ompl::base::SpaceInformationPtr& si);
+  explicit GLS(const ompl::base::SpaceInformationPtr& si, const std::string& name = "GLS");
 
   /// Destructor.
   ~GLS(void);
@@ -62,7 +62,7 @@ public:
   /// Solve the planning problem.
   /// \param[in] ptc OMPL Planning Termination Condition.
   ompl::base::PlannerStatus solve(
-      const ompl::base::PlannerTerminationCondition& ptc);
+      const ompl::base::PlannerTerminationCondition& ptc) override;
 
   /// Clear the planner setup.
   void clear() override;
@@ -86,12 +86,6 @@ public:
 
   /// Get the connection radius of the graph.
   double getConnectionRadius();
-
-  /// Set the collision checking resolution along the edge.
-  void setCollisionCheckResolution(double resolution);
-
-  /// Get the connection radius of the graph.
-  double getCollisionCheckResolution();
 
   /// Set the roadmap. Loads the graph.
   void setRoadmap(std::string filename);
@@ -171,9 +165,6 @@ private:
 
   /// Connection radius in the graph.
   double mConnectionRadius;
-
-  /// Collision checking resolution for the edge.
-  double mCollisionCheckResolution;
 
   /// Boolean denoting if the graph has been setup.
   bool mGraphSetup{false};

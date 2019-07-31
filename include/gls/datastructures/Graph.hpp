@@ -16,9 +16,6 @@
 #include "gls/datastructures/State.hpp"
 #include "gls/datastructures/Types.hpp"
 
-// TODO (avk): state and length are made public to accomodate the
-// roadmapmanager which seems stupid. Change it if possible.
-
 namespace gls {
 namespace datastructures {
 
@@ -40,32 +37,28 @@ enum EvaluationStatus
   Evaluated
 };
 
-class VertexProperties
+struct VertexProperties
 {
-public:
   // Set state wrapper around underlying OMPL state.
-  void setState(StatePtr state);
+  void updateState(StatePtr state);
 
   // Get state wrapper around underlying OMPL state.
   StatePtr getState();
 
   // Set cost-to-come.
-  void setCostToCome(double cost);
+  void updateCost(double cost);
 
   // Get cost-to-come.
   double getCostToCome();
 
   // Set heuristic.
-  void setHeuristic(double heuristic);
+  void updateHeuristic(double heuristic);
 
   // Get heuristic.
   double getHeuristic();
 
-  // Get estimated total cost.
-  double getEstimatedTotalCost();
-
   // Set the vertex parent.
-  void setParent(Vertex parent);
+  void updateParent(Vertex parent);
 
   // Get the vertex parent.
   Vertex getParent();
@@ -76,7 +69,7 @@ public:
   std::set<Vertex>& getChildren();
 
   // Set the children of the vertex in the search tree.
-  void setChildren(std::set<Vertex> children);
+  void updateChildren(std::set<Vertex> children);
 
   // Add a single child to the vertex.
   void addChild(Vertex child);
@@ -97,27 +90,28 @@ public:
   bool hasChild(Vertex child);
 
   // Sets the visit status of the vertex.
-  void setVisitStatus(VisitStatus status);
+  void updateVisitStatus(VisitStatus status);
 
   // Get the visit status of the vertex.
   VisitStatus getVisitStatus();
 
   // Sets the collision status of the vertex.
-  void setCollisionStatus(CollisionStatus status);
+  void updateCollisionStatus(CollisionStatus status);
 
   // Get the collision status of the vertex.
   CollisionStatus getCollisionStatus();
 
   /// Underlying state.
-  /// TODO (avk): why is this public?
   StatePtr mState;
 
-private:
   /// Cost-to-Come.
   double mCostToCome{std::numeric_limits<double>::infinity()};
 
   /// Heuristic value.
   double mHeuristic{std::numeric_limits<double>::infinity()};
+
+  /// Cost-to-Come.
+  double mTotalCost{std::numeric_limits<double>::infinity()};
 
   /// Parent.
   Vertex mParent;
@@ -132,38 +126,29 @@ private:
   CollisionStatus mCollisionStatus{CollisionStatus::Free};
 };
 
-class EdgeProperties
+struct EdgeProperties
 {
-public:
   // Sets the length of the edge.
-  void setLength(double length);
+  void updateLength(double length);
 
   // Get the length of the edge.
   double getLength();
 
-  // Get the vector of states the edge embeds.
-  std::vector<StatePtr>& getEdgeStates();
-
   // Sets the evaluation status.
-  void setEvaluationStatus(EvaluationStatus evaluationStatus);
+  void updateEvaluationStatus(EvaluationStatus evaluationStatus);
 
   // Get the evaluation status.
   EvaluationStatus getEvaluationStatus();
 
   // Sets the collision status.
-  void setCollisionStatus(CollisionStatus status);
+  void updateCollisionStatus(CollisionStatus status);
 
   // Get the collision status.
   CollisionStatus getCollisionStatus();
 
   /// The length of the edge using the space distance metric.
-  /// TODO (avk): Why is this public?
   double mLength;
 
-  /// States embedded in an edge.
-  std::vector<StatePtr> mEdgeStates;
-
-private:
   /// Evaluation status.
   EvaluationStatus mEvaluationStatus{EvaluationStatus::NotEvaluated};
 
@@ -198,6 +183,9 @@ typedef boost::graph_traits<Graph>::adjacency_iterator NeighborIter;
 typedef boost::property_map<Graph,
                             gls::datastructures::StatePtr
                                 VertexProperties::*>::type VPStateMap;
+
+/// Map each edge to its length
+typedef boost::property_map<Graph, double VertexProperties::*>::type VPCostMap;
 
 /// Map each edge to its length
 typedef boost::property_map<Graph, double EdgeProperties::*>::type EPLengthMap;

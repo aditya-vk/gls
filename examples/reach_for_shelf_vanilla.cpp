@@ -91,6 +91,8 @@ bool isPointValid(const aikido::statespace::dart::MetaSkeletonStateSpacePtr stat
                   const aikido::constraint::TestablePtr constraint,
                   const ompl::base::State* state)
 {
+  return true;
+
   std::chrono::time_point<std::chrono::system_clock> startTime{std::chrono::system_clock::now()};
   DART_UNUSED(stateSpace);
   const auto* st = static_cast<const aikido::planner::ompl::GeometricStateSpace::StateType*>(state);
@@ -154,7 +156,7 @@ void shortcutAndLog(ompl::base::ProblemDefinitionPtr pdef, double plantime, doub
   }
   std::chrono::duration<double> shortcutTime{time_current - time_before};
 
-  std::string filename = "/home/prl/workspaces/lab-ws/src/planning_dataset/results/rrt_reach_for_shelf_vanilla.txt";
+  std::string filename = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/results/rrt_reach_for_shelf_vanilla.txt";
 
   std::ofstream logFile;
   logFile.open(filename, std::ios_base::app);
@@ -164,7 +166,7 @@ void shortcutAndLog(ompl::base::ProblemDefinitionPtr pdef, double plantime, doub
 // ===================================================================================================
 void logInformation(ompl::base::ProblemDefinitionPtr pdef, int graphsize, double totaltime, double collisionchecktime, std::size_t evals, std::size_t rewires)
 {
-  std::string filename = "/home/prl/workspaces/lab-ws/src/planning_dataset/results/lazysp_reach_for_shelf_vanilla.txt";
+  std::string filename = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/results/lazysp_reach_for_shelf_vanilla.txt";
   auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(
       pdef->getSolutionPath());
   double originalpathlength = path->length();
@@ -373,7 +375,7 @@ int main(int argc, char *argv[])
   std::function<bool(const ompl::base::State*)> isStateValid = std::bind(
         isPointValid, rightArmSpace, fullCollisionConstraint, std::placeholders::_1);
   si->setStateValidityChecker(isStateValid);
-  si->setStateValidityCheckingResolution(0.015);
+  si->setStateValidityCheckingResolution(0.1);
   si->setup();
 
   // Problem Definition
@@ -388,7 +390,6 @@ int main(int argc, char *argv[])
     // Setup planner
     gls::GLS planner(si);
     planner.setConnectionRadius(1.5);
-    planner.setCollisionCheckResolution(0.015);
     planner.setRoadmap(graph_file);
 
     auto event = std::make_shared<gls::event::ShortestPathEvent>();

@@ -8,14 +8,16 @@ namespace gls {
 namespace datastructures {
 
 using gls::datastructures::Vertex;
+using gls::datastructures::VPCostMap;
 
-SearchQueue::SearchQueue()
+SearchQueue::SearchQueue(const VPCostMap& costMap)
   : mVertexQueue(
         [this](
-            const std::pair<gls::datastructures::Vertex, double>& lhs,
-            const std::pair<gls::datastructures::Vertex, double>& rhs) {
+            const gls::datastructures::Vertex lhs,
+            const gls::datastructures::Vertex rhs) {
           return queueComparison(lhs, rhs);
         })
+  , mCostMap(costMap)
 {
   // Do Nothing.
 }
@@ -27,16 +29,15 @@ void SearchQueue::clear()
 }
 
 // ============================================================================
-void SearchQueue::addVertexWithValue(Vertex vertex, double cost)
+void SearchQueue::addVertex(Vertex vertex)
 {
-  std::pair<Vertex, double> addPair = std::make_pair(vertex, cost);
-  mVertexQueue.insert(addPair);
+  mVertexQueue.insert(vertex);
 }
 
 // ============================================================================
 Vertex SearchQueue::popTopVertex()
 {
-  Vertex topVertex = (*mVertexQueue.begin()).first;
+  Vertex topVertex = *mVertexQueue.begin();
   mVertexQueue.erase(mVertexQueue.begin());
 
   return topVertex;
@@ -45,19 +46,19 @@ Vertex SearchQueue::popTopVertex()
 // ============================================================================
 Vertex SearchQueue::getTopVertex()
 {
-  return (*mVertexQueue.begin()).first;
+  return *mVertexQueue.begin();
 }
 
 // ============================================================================
 double SearchQueue::getTopVertexValue()
 {
-  return (*mVertexQueue.begin()).second;
+  return mCostMap[*mVertexQueue.begin()];
 }
 
 // ============================================================================
-void SearchQueue::removeVertexWithValue(Vertex vertex, double cost)
+void SearchQueue::removeVertex(Vertex vertex)
 {
-  auto iterQ = mVertexQueue.find(std::make_pair(vertex, cost));
+  auto iterQ = mVertexQueue.find(vertex);
   if (iterQ != mVertexQueue.end())
     mVertexQueue.erase(iterQ);
 }
@@ -78,9 +79,9 @@ std::size_t SearchQueue::getSize() const
 }
 
 // ============================================================================
-bool SearchQueue::hasVertexWithValue(const Vertex vertex, double cost)
+bool SearchQueue::hasVertex(const Vertex vertex)
 {
-  auto iterQ = mVertexQueue.find(std::make_pair(vertex, cost));
+  auto iterQ = mVertexQueue.find(vertex);
   if (iterQ != mVertexQueue.end())
     return true;
 
@@ -89,16 +90,16 @@ bool SearchQueue::hasVertexWithValue(const Vertex vertex, double cost)
 
 // ============================================================================
 bool SearchQueue::queueComparison(
-    const std::pair<gls::datastructures::Vertex, double>& left,
-    const std::pair<gls::datastructures::Vertex, double>& right) const
+    const gls::datastructures::Vertex left,
+    const gls::datastructures::Vertex right) const
 {
-  if (left.second < right.second)
+  if (mCostMap[left] < mCostMap[right])
     return true;
-  else if (left.second > right.second)
+  else if (mCostMap[left] > mCostMap[right])
     return false;
   else
   {
-    return left.first < right.first; 
+    return left < right;
   }
 }
 
@@ -110,8 +111,8 @@ void SearchQueue::printQueue() const
   std::cout << "--------------------" << std::endl;
   for (auto iterQ = mVertexQueue.begin(); iterQ != mVertexQueue.end(); ++iterQ)
   {
-    auto pair = *iterQ;
-    std::cout << "Vertex: " << pair.first << " " << "Cost: " << pair.second << std::endl; 
+    auto vertex = *iterQ;
+    std::cout << "Vertex: " << vertex << " " << "Cost: " << mCostMap[vertex] << std::endl;
   }
   std::cout << "--------------------" << std::endl;
 }
