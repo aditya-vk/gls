@@ -35,9 +35,6 @@ namespace gls {
 GLS::GLS(const ompl::base::SpaceInformationPtr& si, const std::string& name)
   : ompl::base::Planner(si, name)
   , mSpace(si->getStateSpace())
-  , mExtendQueue(get(&VertexProperties::mTotalCost, mGraph))
-  , mUpdateQueue(get(&VertexProperties::mCostToCome, mGraph))
-  , mRewireQueue(get(&VertexProperties::mCostToCome, mGraph))
 {
 }
 
@@ -82,6 +79,9 @@ void GLS::setProblemDefinition(const ompl::base::ProblemDefinitionPtr& pdef)
 // ============================================================================
 void GLS::setupPreliminaries()
 {
+  auto costMap = get(&VertexProperties::mCostToCome, mGraph);
+  auto totalCostMap = get(&VertexProperties::mTotalCost, mGraph);
+
   // TODO (avk): Should I kill these pointers manually?
   StatePtr sourceState(new gls::datastructures::State(mSpace));
   mSpace->copyState(sourceState->getOMPLState(), pdef_->getStartState(0));
@@ -99,14 +99,16 @@ void GLS::setupPreliminaries()
   mGraph[mTargetVertex].updateState(targetState);
 
   // Assign default values.
-  mGraph[mSourceVertex].updateCost(0);
+  costMap[mSourceVertex] = 0;
   mGraph[mSourceVertex].updateHeuristic(getGraphHeuristic(mSourceVertex));
+  totalCostMap[mSourceVertex] = costMap[mSourceVertex] + mGraph[mSourceVertex].getHeuristic();
   mGraph[mSourceVertex].updateVisitStatus(VisitStatus::NotVisited);
   mGraph[mSourceVertex].updateCollisionStatus(CollisionStatus::Free);
   mGraph[mSourceVertex].updateParent(mSourceVertex);
 
-  mGraph[mTargetVertex].updateCost(std::numeric_limits<double>::max());
-  mGraph[mTargetVertex].updateHeuristic(0);
+  costMap[mTargetVertex] = std::numeric_limits<double>::max();
+  mGraph[mSourceVertex].updateHeuristic(0);
+  totalCostMap[mTargetVertex] = costMap[mTargetVertex];
   mGraph[mTargetVertex].updateVisitStatus(VisitStatus::NotVisited);
   mGraph[mTargetVertex].updateCollisionStatus(CollisionStatus::Free);
 
@@ -162,11 +164,19 @@ void GLS::setupPreliminaries()
 
   // Setup the selector.
   mSelector->setup(&mGraph);
+
+  // Setup the search queues.
+  mExtendQueue.setup(&mGraph, true);
+  mUpdateQueue.setup(&mGraph, false);
+  mRewireQueue.setup(&mGraph, false);
 }
 
 // ============================================================================
 void GLS::clear()
 {
+  auto costMap = get(&VertexProperties::mCostToCome, mGraph);
+  auto totalCostMap = get(&VertexProperties::mTotalCost, mGraph);
+
   // Call the base clear
   ompl::base::Planner::clear();
 
@@ -180,7 +190,8 @@ void GLS::clear()
   VertexIter vi, vi_end;
   for (boost::tie(vi, vi_end) = vertices(mGraph); vi != vi_end; ++vi)
   {
-    mGraph[*vi].updateCost(std::numeric_limits<double>::max());
+    costMap[*vi] = std::numeric_limits<double>::max();
+    totalCostMap[*vi] = std::numeric_limits<double>::max();
     mGraph[*vi].updateHeuristic(std::numeric_limits<double>::max());
     mGraph[*vi].removeAllChildren();
     mGraph[*vi].updateVisitStatus(VisitStatus::NotVisited);
@@ -217,6 +228,9 @@ void GLS::clear()
 ompl::base::PlannerStatus GLS::solve(
     const ompl::base::PlannerTerminationCondition& /*ptc*/)
 {
+  auto costMap = get(&VertexProperties::mCostToCome, mGraph);
+  auto totalCostMap = get(&VertexProperties::mCostToCome, mGraph);
+
   // Return if source or target are in collision.
   if (evaluateVertex(mSourceVertex) == CollisionStatus::Collision)
   {
@@ -252,7 +266,7 @@ ompl::base::PlannerStatus GLS::solve(
 
   if (mPlannerStatus == PlannerStatus::Solved)
   {
-    setBestPathCost(mGraph[mTargetVertex].getCostToCome());
+    setBestPathCost(costMap[mTargetVertex]);
     pdef_->addSolutionPath(constructSolution(mSourceVertex, mTargetVertex));
     return ompl::base::PlannerStatus::EXACT_SOLUTION;
   }
@@ -455,6 +469,9 @@ CollisionStatus GLS::evaluateEdge(const Edge& e)
 // ============================================================================
 void GLS::extendSearchTree()
 {
+  auto costMap = get(&VertexProperties::mCostToCome, mGraph);
+  auto totalCostMap = get(&VertexProperties::mCostToCome, mGraph);
+
   while (!mExtendQueue.isEmpty())
   {
     // Check if the popping the top vertex triggers the event.
@@ -505,8 +522,8 @@ void GLS::extendSearchTree()
       }
       else
       {
-        double oldCostToCome = mGraph[v].getCostToCome();
-        double newCostToCome = mGraph[u].getCostToCome() + edgeLength;
+        double oldCostToCome = costMap[v];
+        double newCostToCome = costMap[u] + edgeLength;
 
         // Use the parent ID to break ties.
         Vertex previousParent = mGraph[v].getParent();
@@ -552,7 +569,8 @@ void GLS::extendSearchTree()
 
       // Update the successor's properties.
       mGraph[v].updateParent(u);
-      mGraph[v].updateCost(mGraph[u].getCostToCome() + edgeLength);
+      costMap[v] = costMap[u] + edgeLength;
+      totalCostMap[v] = costMap[v] + mGraph[v].getHeuristic();
 
       // Update the vertex property associated with the event.
       mEvent->updateVertexProperties(v);
@@ -587,6 +605,9 @@ void GLS::updateSearchTree()
 // ============================================================================
 void GLS::rewireSearchTree()
 {
+  auto costMap = get(&VertexProperties::mCostToCome, mGraph);
+  auto totalCostMap = get(&VertexProperties::mTotalCost, mGraph);
+
   // 1. Collect all the vertices that need to be rewired.
   while (!mRewireQueue.isEmpty())
   {
@@ -610,7 +631,8 @@ void GLS::rewireSearchTree()
 
     // Assign default values
     mGraph[v].updateParent(v);
-    mGraph[v].updateCost(std::numeric_limits<double>::max());
+    costMap[v] = std::numeric_limits<double>::max();
+    totalCostMap[v] = std::numeric_limits<double>::max();
 
     // Mark it as not visited
     mGraph[v].updateVisitStatus(VisitStatus::NotVisited);
@@ -645,7 +667,7 @@ void GLS::rewireSearchTree()
         continue;
 
       // If the neighbor is one of the vertices to be rewires, ignore now.
-      if (mGraph[u].getCostToCome() == std::numeric_limits<double>::max())
+      if (costMap[u] == std::numeric_limits<double>::max())
         continue;
 
       // If the neighbor is currently not in search tree, ignore.
@@ -665,13 +687,14 @@ void GLS::rewireSearchTree()
 
       if (mGraph[uv].getCollisionStatus() == CollisionStatus::Free)
       {
-        if (mGraph[v].getCostToCome() > mGraph[u].getCostToCome() + edgeLength
-            || (mGraph[v].getCostToCome()
-                    == mGraph[u].getCostToCome() + edgeLength
+        if (costMap[v] > costMap[u] + edgeLength
+            || (costMap[v]
+                    == costMap[u] + edgeLength
                 && u < mGraph[v].getParent()))
         {
           // Update the vertex.
-          mGraph[v].updateCost(mGraph[u].getCostToCome() + edgeLength);
+          costMap[v] = costMap[u] + edgeLength;
+          totalCostMap[v] = costMap[v] + mGraph[v].getHeuristic();
           mGraph[v].updateParent(u);
 
           // Update the vertex property associated with the event.
@@ -720,16 +743,17 @@ void GLS::rewireSearchTree()
 
       if (mGraph[uv].getCollisionStatus() == CollisionStatus::Free)
       {
-        if (mGraph[v].getCostToCome() > mGraph[u].getCostToCome() + edgeLength
-            || (mGraph[v].getCostToCome()
-                    == mGraph[u].getCostToCome() + edgeLength
+        if (costMap[v] > costMap[u] + edgeLength
+            || (costMap[v]
+                    == costMap[u] + edgeLength
                 && u < mGraph[v].getParent()))
         {
           if (mRewireQueue.hasVertex(v))
             mRewireQueue.removeVertex(v);
 
           // Update the vertex.
-          mGraph[v].updateCost(mGraph[u].getCostToCome() + edgeLength);
+          costMap[v] = costMap[u] + edgeLength;
+          totalCostMap[v] = costMap[v] + mGraph[v].getHeuristic();
           mGraph[v].updateParent(u);
 
           // Update the vertex property associated with the event.

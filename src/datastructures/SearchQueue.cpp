@@ -10,16 +10,22 @@ namespace datastructures {
 using gls::datastructures::Vertex;
 using gls::datastructures::VPCostMap;
 
-SearchQueue::SearchQueue(const VPCostMap& costMap)
+SearchQueue::SearchQueue()
   : mVertexQueue(
         [this](
             const gls::datastructures::Vertex lhs,
             const gls::datastructures::Vertex rhs) {
           return queueComparison(lhs, rhs);
         })
-  , mCostMap(costMap)
 {
   // Do Nothing.
+}
+
+// ============================================================================
+void SearchQueue::setup(gls::datastructures::Graph* graph, bool useTotalCost)
+{
+  mGraph = graph;
+  mUseTotalCost = useTotalCost;
 }
 
 // ============================================================================
@@ -52,7 +58,11 @@ Vertex SearchQueue::getTopVertex()
 // ============================================================================
 double SearchQueue::getTopVertexValue()
 {
-  return mCostMap[*mVertexQueue.begin()];
+  auto costMap = get(&VertexProperties::mCostToCome, *mGraph);
+  if (mUseTotalCost)
+    costMap = get(&VertexProperties::mTotalCost, *mGraph);
+
+  return costMap[*mVertexQueue.begin()];
 }
 
 // ============================================================================
@@ -93,9 +103,13 @@ bool SearchQueue::queueComparison(
     const gls::datastructures::Vertex left,
     const gls::datastructures::Vertex right) const
 {
-  if (mCostMap[left] < mCostMap[right])
+  auto costMap = get(&VertexProperties::mCostToCome, *mGraph);
+  if (mUseTotalCost)
+    costMap = get(&VertexProperties::mTotalCost, *mGraph);
+
+  if (costMap[left] < costMap[right])
     return true;
-  else if (mCostMap[left] > mCostMap[right])
+  else if (costMap[left] > costMap[right])
     return false;
   else
   {
@@ -106,13 +120,17 @@ bool SearchQueue::queueComparison(
 // ============================================================================
 void SearchQueue::printQueue() const
 {
+  auto costMap = get(&VertexProperties::mCostToCome, *mGraph);
+  if (mUseTotalCost)
+    costMap = get(&VertexProperties::mTotalCost, *mGraph);
+
   std::cout << "--------------------" << std::endl;
   std::cout << "Queue Size: " << mVertexQueue.size() << std::endl;
   std::cout << "--------------------" << std::endl;
   for (auto iterQ = mVertexQueue.begin(); iterQ != mVertexQueue.end(); ++iterQ)
   {
     auto vertex = *iterQ;
-    std::cout << "Vertex: " << vertex << " " << "Cost: " << mCostMap[vertex] << std::endl;
+    std::cout << "Vertex: " << vertex << " " << "Cost: " << costMap[vertex] << std::endl;
   }
   std::cout << "--------------------" << std::endl;
 }

@@ -91,8 +91,6 @@ bool isPointValid(const aikido::statespace::dart::MetaSkeletonStateSpacePtr stat
                   const aikido::constraint::TestablePtr constraint,
                   const ompl::base::State* state)
 {
-  return true;
-
   std::chrono::time_point<std::chrono::system_clock> startTime{std::chrono::system_clock::now()};
   DART_UNUSED(stateSpace);
   const auto* st = static_cast<const aikido::planner::ompl::GeometricStateSpace::StateType*>(state);
@@ -156,7 +154,7 @@ void shortcutAndLog(ompl::base::ProblemDefinitionPtr pdef, double plantime, doub
   }
   std::chrono::duration<double> shortcutTime{time_current - time_before};
 
-  std::string filename = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/results/rrt_reach_for_shelf_vanilla.txt";
+  std::string filename = "/home/prl/workspaces/lab-ws/src/planning_dataset/results/rrt_reach_for_shelf_vanilla.txt";
 
   std::ofstream logFile;
   logFile.open(filename, std::ios_base::app);
@@ -166,7 +164,7 @@ void shortcutAndLog(ompl::base::ProblemDefinitionPtr pdef, double plantime, doub
 // ===================================================================================================
 void logInformation(ompl::base::ProblemDefinitionPtr pdef, int graphsize, double totaltime, double collisionchecktime, std::size_t evals, std::size_t rewires)
 {
-  std::string filename = "/home/adityavk/workspaces/lab-ws/src/planning_dataset/results/lazysp_reach_for_shelf_vanilla.txt";
+  std::string filename = "/home/prl/workspaces/lab-ws/src/planning_dataset/results/lazysp_reach_for_shelf_vanilla.txt";
   auto path = std::dynamic_pointer_cast<ompl::geometric::PathGeometric>(
       pdef->getSolutionPath());
   double originalpathlength = path->length();
@@ -239,10 +237,10 @@ int main(int argc, char *argv[])
   // Visualization topics
   static const std::string execTopicName = topicName + "/exec";
 
-  // Start the RViz viewer.
-  ROS_INFO_STREAM("Starting viewer. Please subscribe to the '" << execTopicName << "' InteractiveMarker topic in RViz.");
-  WorldInteractiveMarkerViewer viewer(env, execTopicName, baseFrameName);
-  viewer.setAutoUpdate(true);
+//  // Start the RViz viewer.
+//  ROS_INFO_STREAM("Starting viewer. Please subscribe to the '" << execTopicName << "' InteractiveMarker topic in RViz.");
+//  WorldInteractiveMarkerViewer viewer(env, execTopicName, baseFrameName);
+//  viewer.setAutoUpdate(true);
 
   // Obtain the space to plan in
   auto leftArm = robot.getLeftArm()->getMetaSkeleton();
@@ -375,7 +373,7 @@ int main(int argc, char *argv[])
   std::function<bool(const ompl::base::State*)> isStateValid = std::bind(
         isPointValid, rightArmSpace, fullCollisionConstraint, std::placeholders::_1);
   si->setStateValidityChecker(isStateValid);
-  si->setStateValidityCheckingResolution(0.1);
+  si->setStateValidityCheckingResolution(0.9);
   si->setup();
 
   // Problem Definition

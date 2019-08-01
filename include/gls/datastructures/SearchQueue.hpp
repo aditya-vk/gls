@@ -31,10 +31,13 @@ public:
   typedef std::set<gls::datastructures::Vertex, VertexSortingFunction> VertexQueue;
 
   /// Constructor.
-  SearchQueue(const gls::datastructures::VPCostMap& costmap);
+  SearchQueue();
 
   /// Destructor.
   virtual ~SearchQueue() = default;
+
+  /// Setup the search queue with the graph information.
+  void setup(gls::datastructures::Graph* graph, bool useTotalCost);
 
   /// Clear the search queue.
   void clear();
@@ -79,9 +82,11 @@ private:
   /// The underlying queue of vertices sorted by VertexQueueSortingFunction.
   VertexQueue mVertexQueue;
 
-  /// The costmap used to sort the vertices.
-  const gls::datastructures::VPCostMap& mCostMap;
+  /// Pointer to the graph.
+  gls::datastructures::Graph* mGraph;
 
+  /// Boolean to use total cost.
+  bool mUseTotalCost;
 }; // SearchQueue
 
 } // datastructures
